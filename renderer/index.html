@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>FlowCast</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Titlebar -->
+<div id="titlebar">
+  <button class="tb-btn" id="btn-sidebar-toggle" data-i18n-title="tb.sidebar.title" style="font-size:15px;padding:4px 8px;margin-right:4px">☰</button>
+  <span class="tb-title"><img src="../assets/flowcast_scritta.png" alt="FlowCast" style="height:22px;vertical-align:middle;margin-right:4px"></span>
+  <span class="tb-status" id="tb-status"></span>
+  <span style="flex:1"></span>
+  <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="tb.theme.title" style="font-size:14px;padding:4px 7px">☀️</button>
+  <button class="tb-btn" id="btn-help"  data-i18n-title="tb.help.title">❓</button>
+  <button class="tb-btn" id="btn-about" data-i18n-title="tb.about.title">ℹ</button>
+</div>
+
+<!-- App shell -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-nav">
+      <div class="nav-item active" id="nav-dashboard" data-view="dashboard">
+        <span class="nav-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
+      </div>
+    </div>
+    <div class="sidebar-header">
+      <h2 data-i18n="sidebar.shows">Shows</h2>
+      <button class="btn-icon" id="btn-new-show" title="+">+</button>
+    </div>
+    <div id="shows-list"></div>
+    <div class="sidebar-footer">
+      <button class="btn btn-muted btn-sm" id="btn-open-settings" style="flex:1" data-i18n="sidebar.settings">⚙ Settings</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="view-dashboard" class="view active">
+        <div class="dash-hero">
+          <h1 class="dash-title" data-i18n="dash.title">Dashboard</h1>
+          <div class="dash-info-bar">
+            <span id="dash-clock" class="dash-clock"></span>
+            <span class="dash-info-sep">·</span>
+            <span id="dash-next-task" class="dash-next-task"></span>
+          </div>
+        </div>
+        <div id="ffmpeg-warning" class="ffmpeg-warning hidden">
+          <span id="ffmpeg-warning-text"></span>
+          <a href="https://github.com/djgragra/flowcast#installing-ffmpeg" data-i18n="ffmpeg.howto">How to install FFmpeg</a>
+          <button class="btn btn-muted btn-sm" id="btn-ffmpeg-settings" data-i18n="ffmpeg.settings">Set path</button>
+        </div>
+        <div class="dash-controls">
+          <div class="dash-search-row">
+            <input type="text" id="dash-search" class="dash-search-input" data-i18n-placeholder="dash.search">
+          </div>
+          <div class="dash-filter-sort-row">
+            <div class="filter-bar">
+              <span class="filter-label" data-i18n="filter.label">Filter:</span>
+              <button class="filter-chip active" data-filter="all"      data-i18n="filter.all">All</button>
+              <button class="filter-chip" data-filter="active"          data-i18n="filter.active">✓ Active</button>
+              <button class="filter-chip" data-filter="enabled"         data-i18n="filter.enabled">● Enabled</button>
+              <button class="filter-chip" data-filter="disabled"        data-i18n="filter.disabled">○ Disabled</button>
+              <button class="filter-chip" data-filter="error"           data-i18n="filter.error">⚠ With error</button>
+              <button class="filter-chip" data-filter="expired"        data-i18n="filter.expired">📅 Expired</button>
+              <span class="filter-count" id="filter-count"></span>
+            </div>
+            <div class="sort-bar">
+              <span class="sort-label" data-i18n="sort.label">Sort:</span>
+              <button class="sort-btn active" data-sort="name"     id="sort-by-name"     data-i18n="sort.name">Name</button>
+              <button class="sort-btn"        data-sort="schedule" id="sort-by-schedule" data-i18n="sort.schedule">Schedule</button>
+              <button class="sort-btn"        data-sort="lastrun"  id="sort-by-lastrun"  data-i18n="sort.lastrun">Last Run</button>
+              <button class="btn btn-muted btn-sm" id="btn-sort-dir" data-i18n-title="sort.dir.title">↑ A→Z</button>
+            </div>
+          </div>
+        </div>
+        <div class="shows-grid" id="dashboard-grid"></div>
+      </div>
+
+      <!-- ── SHOW DETAIL ── -->
+      <div id="view-show" class="view">
+        <div class="show-detail-header">
+          <button class="tb-btn" id="btn-back-dashboard" style="-webkit-app-region:no-drag" data-i18n="show.back">← Dashboard</button>
+          <h1 id="show-title" data-i18n="show.new">New Show</h1>
+          <span id="show-badge" class="badge badge-idle"></span>
+          <button class="btn-enable on" id="btn-toggle-enabled" data-i18n="show.enabled">● Enabled</button>
+          <button class="btn btn-green btn-sm"  id="btn-run-now"   data-i18n="btn.run_now">▶ Run now</button>
+          <button class="btn btn-force btn-sm"  id="btn-force-run" data-i18n="btn.force" data-i18n-title="btn.force.title">⚡ Force</button>
+          <button class="btn btn-muted btn-sm"  id="btn-dry-run"   data-i18n="btn.dry_run" data-i18n-title="btn.dry_run.title">🧪 Dry Run</button>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-tab="generale"  data-i18n="tab.general">General</div>
+          <div class="tab"        data-tab="sorgenti"  data-i18n="tab.sources">Audio Sources</div>
+          <div class="tab"        id="tab-btn-schedule" data-tab="schedule" data-i18n="tab.schedule">Schedule</div>
+          <div class="tab"        data-tab="output"    data-i18n="tab.output">Output & FTP</div>
+          <div class="tab"        data-tab="archivio"  data-i18n="tab.archive">Archive</div>
+          <div class="tab"        data-tab="registro"  data-i18n="tab.history">History</div>
+          <div class="tab"        data-tab="log"       data-i18n="tab.log">Log</div>
+        </div>
+
+        <!-- TAB: General -->
+        <div class="tab-content active" id="tab-generale">
+          <div class="form-section">
+            <h3 data-i18n="gen.identity">Identity</h3>
+            <div class="field">
+              <label data-i18n="gen.name.label">Program name</label>
+              <input type="text" id="f-name" data-i18n-placeholder="gen.name.ph">
+            </div>
+            <div class="field">
+              <label data-i18n="gen.slug.label">Slug — output filename</label>
+              <div class="ir">
+                <input type="text" id="f-slug" data-i18n-placeholder="gen.slug.ph">
+                <button class="btn btn-muted btn-sm" id="btn-auto-slug" data-i18n-title="gen.slug.auto.title">↺</button>
+              </div>
+              <div class="note" id="filename-preview" style="color:var(--accent);font-family:monospace;margin-top:4px"></div>
+            </div>
+            <div class="field">
+              <label data-i18n="gen.format.label">Output format</label>
+              <select id="f-output-format">
+                <option value="mp3"  data-i18n="gen.format.mp3">MP3 (default)</option>
+                <option value="aac"  data-i18n="gen.format.aac">AAC (.aac)</option>
+                <option value="ogg"  data-i18n="gen.format.ogg">OGG Vorbis (.ogg)</option>
+                <option value="copy" data-i18n="gen.format.copy">Direct copy (no conversion)</option>
+              </select>
+              <div class="note" data-i18n="gen.format.note">Direct copy: no conversion, source file copied as-is.</div>
+            </div>
+            <div class="field" id="field-bitrate">
+              <label data-i18n="gen.bitrate.label">Bitrate</label>
+              <select id="f-bitrate">
+                <option value="192k" data-i18n="gen.bitrate.192">192k (default)</option>
+                <option value="128k" data-i18n="gen.bitrate.128">128k</option>
+                <option value="256k" data-i18n="gen.bitrate.256">256k</option>
+                <option value="320k" data-i18n="gen.bitrate.320">320k</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 data-i18n="gen.mode.title">Execution mode</h3>
+            <div class="mode-selector">
+              <div class="mode-card selected" id="mode-scheduled" data-mode="scheduled">
+                <span class="mc-icon">🕐</span>
+                <span class="mc-label" data-i18n="gen.mode.sched.label">Scheduled</span>
+                <span class="mc-desc"  data-i18n="gen.mode.sched.desc">Starts automatically at the configured time</span>
+              </div>
+              <div class="mode-card" id="mode-manual" data-mode="manual">
+                <span class="mc-icon">▶</span>
+                <span class="mc-label" data-i18n="gen.mode.man.label">Manual</span>
+                <span class="mc-desc"  data-i18n="gen.mode.man.desc">On request only, no automatic start</span>
+              </div>
+            </div>
+            <input type="hidden" id="f-mode" value="scheduled">
+          </div>
+
+          <details class="form-section adv-section">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;list-style:none;display:flex;align-items:center;gap:6px">
+              <span id="adv-arrow">▶</span> <span data-i18n="gen.adv.title">Advanced paths (app internal overrides)</span>
+            </summary>
+            <div style="margin-top:12px">
+              <div class="field">
+                <label data-i18n="gen.workdir.label">Custom working directory</label>
+                <div class="ir">
+                  <input type="text" id="f-working" data-i18n-placeholder="gen.workdir.ph">
+                  <button class="btn btn-muted btn-sm" id="btn-browse-working" data-i18n-title="src.row.browse">📁</button>
+                </div>
+              </div>
+              <div class="field">
+                <label data-i18n="gen.verifica.label">Verify file</label>
+                <div class="ir">
+                  <input type="text" id="f-verifica" data-i18n-placeholder="gen.verifica.ph">
+                  <button class="btn btn-muted btn-sm" id="btn-browse-verifica" data-i18n-title="src.row.browse">📁</button>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- TAB: Audio Sources -->
+        <div class="tab-content" id="tab-sorgenti">
+          <div class="form-section">
+            <h3 data-i18n="src.title">Source audio files</h3>
+            <div class="field">
+              <label data-i18n="src.base.label">Source BASE path</label>
+              <div class="ir">
+                <input type="text" id="f-wav-base" data-i18n-placeholder="src.base.ph">
+                <button class="btn btn-muted btn-sm" id="btn-browse-wav-base" data-i18n-title="src.row.browse">📁</button>
+                <button class="btn btn-muted btn-sm" id="btn-reset-wav-base" title="↺">↺</button>
+              </div>
+              <div class="note" data-i18n-html="src.base.note">If set, fields below can contain only the relative part, e.g. <code>00\file.wav</code></div>
+            </div>
+            <div class="wav-list-header">
+              <span class="wlh-num"></span>
+              <span class="wlh-path" data-i18n="src.col.path">File path</span>
+              <span class="wlh-browse"></span>
+              <span class="wlh-note"  data-i18n="src.col.note">Notes</span>
+              <span class="wlh-check" data-i18n="src.col.check">Check</span>
+              <span class="wlh-btns"></span>
+            </div>
+            <div class="wav-list" id="wav-list"></div>
+            <button class="btn btn-muted btn-sm" id="btn-add-wav" style="margin-top:8px" data-i18n="src.add">+ Add audio</button>
+          </div>
+        </div>
+
+        <!-- TAB: Schedule -->
+        <div class="tab-content" id="tab-schedule">
+          <div id="schedule-manual-notice" style="display:none;background:#1f1a2a;border:1px solid #9b6ef0;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#c0a0f0"
+               data-i18n-html="sch.manual.notice"></div>
+          <div id="schedule-fields">
+            <div class="form-section">
+              <h3 data-i18n="sch.plan.title">Scheduling</h3>
+              <div class="row2">
+                <div class="field">
+                  <label data-i18n="sch.time.label">Time (HH:MM)</label>
+                  <input type="time" id="f-time" value="14:00">
+                </div>
+                <div class="field">
+                  <label data-i18n="sch.freq.label">Frequency</label>
+                  <select id="f-freq">
+                    <option value="daily"    data-i18n="sch.freq.daily">Every day</option>
+                    <option value="weekdays" data-i18n="sch.freq.weekdays">Monday–Friday</option>
+                    <option value="weekend"  data-i18n="sch.freq.weekend">Saturday–Sunday</option>
+                    <option value="specific" data-i18n="sch.freq.specific">Specific days</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field" id="field-days" style="display:none">
+                <label data-i18n="sch.days.label">Days</label>
+                <div class="days-check">
+                  <label class="day-chip" data-day="MON"><input type="checkbox" value="MON"><span data-i18n="sch.day.mon">Mon</span></label>
+                  <label class="day-chip" data-day="TUE"><input type="checkbox" value="TUE"><span data-i18n="sch.day.tue">Tue</span></label>
+                  <label class="day-chip" data-day="WED"><input type="checkbox" value="WED"><span data-i18n="sch.day.wed">Wed</span></label>
+                  <label class="day-chip" data-day="THU"><input type="checkbox" value="THU"><span data-i18n="sch.day.thu">Thu</span></label>
+                  <label class="day-chip" data-day="FRI"><input type="checkbox" value="FRI"><span data-i18n="sch.day.fri">Fri</span></label>
+                  <label class="day-chip" data-day="SAT"><input type="checkbox" value="SAT"><span data-i18n="sch.day.sat">Sat</span></label>
+                  <label class="day-chip" data-day="SUN"><input type="checkbox" value="SUN"><span data-i18n="sch.day.sun">Sun</span></label>
+                </div>
+              </div>
+              <div class="field">
+                <label data-i18n="sch.next.label">Next run</label>
+                <div id="next-run-display" style="font-size:13px;color:var(--accent);padding:6px 0">—</div>
+              </div>
+            </div>
+            <div class="form-section">
+              <h3 data-i18n="sch.validity.title">Validity period</h3>
+              <div class="row2">
+                <div class="field">
+                  <label data-i18n="sch.start.label">Start date</label>
+                  <input type="date" id="f-schedule-start">
+                  <div class="note" data-i18n="sch.start.note">Default: creation date</div>
+                </div>
+                <div class="field">
+                  <label data-i18n="sch.end.label">End date <span style="color:var(--muted)" data-i18n="sch.end.label"></span></label>
+                  <input type="date" id="f-schedule-end">
+                  <div class="note" data-i18n="sch.end.note">Leave empty = no expiry</div>
+                </div>
+              </div>
+              <div id="schedule-range-info" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Output & FTP -->
+        <div class="tab-content" id="tab-output">
+          <div class="form-section">
+            <h3 data-i18n="ftp.title">FTP Upload</h3>
+            <div class="cb-row" style="margin-bottom:16px">
+              <label class="toggle">
+                <input type="checkbox" id="f-ftp-enabled">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="f-ftp-enabled" data-i18n="ftp.enabled.label">FTP enabled</label>
+            </div>
+            <div id="ftp-fields">
+              <div class="field">
+                <label data-i18n="ftp.bm.select.label">Bookmark</label>
+                <div class="ir">
+                  <select id="f-ftp-bookmark-select" style="flex:1"><option value="">–</option></select>
+                  <input type="hidden" id="f-ftp-bookmark-id" value="">
+                  <button class="btn btn-muted btn-sm" id="btn-load-ftp-bookmark" data-i18n="ftp.bm.load.cred">▶ Load</button>
+                </div>
+                <div class="note" data-i18n="ftp.bm.select.note">Loads credentials only (host, port, user, password). Remote path stays per-show. Manage bookmarks in Settings → FTP.</div>
+              </div>
+              <div class="row2">
+                <div class="field">
+                  <label data-i18n="ftp.host.label">Host</label>
+                  <input type="text" id="f-ftp-host" data-i18n-placeholder="ftp.host.ph">
+                </div>
+                <div class="field">
+                  <label data-i18n="ftp.port.label">Port</label>
+                  <input type="number" id="f-ftp-port" value="21" min="1" max="65535">
+                </div>
+              </div>
+              <div class="row2">
+                <div class="field">
+                  <label data-i18n="ftp.user.label">User</label>
+                  <input type="text" id="f-ftp-user" data-i18n-placeholder="ftp.user.ph">
+                </div>
+                <div class="field">
+                  <label data-i18n="ftp.pass.label">Password</label>
+                  <input type="password" id="f-ftp-pass" placeholder="••••••••">
+                </div>
+              </div>
+              <div class="field">
+                <label data-i18n="ftp.path.label">Remote folder</label>
+                <div class="ir" style="gap:4px">
+                  <input type="text" id="f-ftp-path" data-i18n-placeholder="ftp.path.ph" style="flex:1">
+                  <button type="button" class="btn btn-muted btn-sm" id="btn-browse-ftp-path" title="Sfoglia FTP">📂</button>
+                </div>
+              </div>
+              <div class="cb-row">
+                <input type="checkbox" id="f-ftp-secure">
+                <label for="f-ftp-secure" data-i18n="ftp.secure.label">Use FTPS (SSL/TLS)</label>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+                <button class="btn btn-muted" id="btn-test-ftp" data-i18n="ftp.test">🔌 Test connection</button>
+                <span id="ftp-test-result" style="font-size:12px;color:var(--muted)"></span>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 data-i18n="out.local.title">Local output folder (optional)</h3>
+            <div class="field">
+              <div class="ir">
+                <input type="text" id="f-output-folder" data-i18n-placeholder="out.local.ph">
+                <button class="btn btn-muted btn-sm" id="btn-browse-output" data-i18n-title="src.row.browse">📁</button>
+              </div>
+              <div class="note" data-i18n="out.local.note">Copies the file here after each production.</div>
+            </div>
+            <div class="cb-row" style="margin-top:6px">
+              <input type="checkbox" id="f-clear-output">
+              <label for="f-clear-output" data-i18n="out.clear.label">Empty folder before upload</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Archive -->
+        <div class="tab-content" id="tab-archivio">
+          <div class="form-section">
+            <h3 data-i18n="arch.title">Historical archive</h3>
+            <div class="cb-row" style="margin-bottom:16px">
+              <label class="toggle">
+                <input type="checkbox" id="f-archive-enabled">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="f-archive-enabled" data-i18n="arch.enabled">Archiving enabled</label>
+            </div>
+            <div id="archive-fields">
+              <div class="field">
+                <label data-i18n="arch.sub.label">Archive subfolder</label>
+                <div class="archive-base-label" id="archive-base-label"></div>
+                <div class="ir">
+                  <input type="text" id="f-archive" data-i18n-placeholder="arch.sub.ph">
+                  <button class="btn btn-muted btn-sm" id="btn-browse-archive" data-i18n-title="arch.browse.title">📁</button>
+                  <button class="btn btn-muted btn-sm" id="btn-reset-archive"  data-i18n-title="arch.reset.title">↺</button>
+                </div>
+                <div class="archive-preview" id="archive-preview"></div>
+                <div class="note" data-i18n="arch.sub.note">Enter only the folder name. Base path is configured in Settings.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: History -->
+        <div class="tab-content" id="tab-registro">
+          <div class="log-toolbar">
+            <span style="font-size:12px;color:var(--muted)" data-i18n="hist.header">Execution history</span>
+            <span style="flex:1"></span>
+            <button class="btn btn-muted btn-sm" id="btn-clear-history" data-i18n="hist.clear">🗑 Clear history</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="h-empty" data-i18n="hist.empty">No runs recorded</div>
+          </div>
+        </div>
+
+        <!-- TAB: Log -->
+        <div class="tab-content" id="tab-log">
+          <div class="log-toolbar">
+            <span style="font-size:12px;color:var(--muted)" data-i18n="log.header">Last run output</span>
+            <span style="flex:1"></span>
+            <button class="btn btn-muted btn-sm" id="btn-open-log-folder" data-i18n-title="log.folder.title" data-i18n="log.folder">📁 Folder</button>
+            <button class="btn btn-muted btn-sm" id="btn-export-log"      data-i18n-title="log.export.title" data-i18n="log.export">💾 Export</button>
+            <button class="btn btn-muted btn-sm" id="btn-clear-log"       data-i18n="log.clear">🗑 Clear</button>
+            <button class="btn btn-muted btn-sm" id="btn-run-now-log"     data-i18n="log.run_now">▶ Run now</button>
+          </div>
+          <div id="log-output"></div>
+        </div>
+
+        <!-- Action row -->
+        <div class="btn-row" id="show-btn-row">
+          <button class="btn btn-primary" id="btn-edit-show"      data-i18n="btn.edit">✏ Edit</button>
+          <button class="btn btn-primary" id="btn-save-show"      data-i18n="btn.save"      style="display:none">💾 Save</button>
+          <button class="btn btn-muted"   id="btn-cancel-show"    data-i18n="btn.cancel"    style="display:none">Cancel</button>
+          <button class="btn btn-muted"   id="btn-duplicate-show" data-i18n="btn.duplicate" data-i18n-title="btn.duplicate.title" style="display:none">⧉ Duplicate</button>
+          <span style="flex:1"></span>
+          <button class="btn btn-danger"  id="btn-delete-show"    data-i18n="btn.delete">🗑 Delete show</button>
+        </div>
+      </div>
+
+    </div><!-- #content -->
+  </div><!-- #main -->
+</div><!-- #app -->
+
+<!-- ── SETTINGS PAGE ── -->
+<div id="page-settings" class="hidden">
+  <div class="set-header">
+    <button class="tb-btn" id="btn-settings-back" style="font-size:15px;padding:4px 10px">←</button>
+    <span class="set-title" data-i18n="set.title">⚙ Settings</span>
+    <span style="flex:1"></span>
+    <span id="settings-saved" style="font-size:12px;color:var(--green);margin-right:12px;display:none" data-i18n="set.saved">✓ Saved</span>
+    <button class="btn btn-primary" id="btn-save-settings" data-i18n="set.save">💾 Save</button>
+  </div>
+  <div class="set-layout">
+    <nav class="set-nav">
+      <button class="set-nav-btn active" data-section="general" data-i18n="set.nav.general">🎛 Generale</button>
+      <button class="set-nav-btn" data-section="email"   data-i18n="set.nav.email">📧 Email</button>
+      <button class="set-nav-btn" data-section="ftp"     data-i18n="set.nav.ftp">📡 FTP</button>
+      <button class="set-nav-btn" data-section="backup"  data-i18n="set.nav.backup">💾 Backup</button>
+      <button class="set-nav-btn" data-section="info"    data-i18n="set.nav.info">ℹ Info</button>
+    </nav>
+    <div class="set-content">
+
+      <!-- General -->
+      <div class="set-section active" id="set-general">
+        <div class="form-section">
+          <h3 data-i18n="set.wav.title">Audio sources</h3>
+          <div class="field">
+            <label data-i18n="set.wav.label">WAV sources BASE path</label>
+            <div class="ir">
+              <input type="text" id="s-base-wav" data-i18n-placeholder="set.wav.ph">
+              <button class="btn btn-muted btn-sm" id="btn-browse-s-wav" data-i18n-title="src.row.browse">📁</button>
+            </div>
+            <div class="note" data-i18n="set.wav.note">Prefix for WAV fields.</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="set.arch.title">Archive</h3>
+          <div class="field">
+            <label data-i18n="set.arch.label">Archive BASE path</label>
+            <div class="ir">
+              <input type="text" id="s-base-archive" data-i18n-placeholder="set.arch.ph">
+              <button class="btn btn-muted btn-sm" id="btn-browse-s-archive" data-i18n-title="src.row.browse">📁</button>
+            </div>
+            <div class="note" data-i18n="set.arch.note">Each show's archive path: BASE\{slug_underscore}</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="set.tools.title">Tools</h3>
+          <div class="field">
+            <label data-i18n="set.ffmpeg.label">FFmpeg path</label>
+            <div class="ir">
+              <input type="text" id="s-ffmpeg" placeholder="ffmpeg">
+              <button class="btn btn-muted btn-sm" id="btn-browse-ffmpeg" data-i18n-title="src.row.browse">📁</button>
+              <button class="btn btn-muted btn-sm" id="btn-test-ffmpeg" data-i18n="set.ffmpeg.test">Test</button>
+            </div>
+            <div id="ffmpeg-test-result" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+            <div class="note" data-i18n="set.ffmpeg.note">Leave 'ffmpeg' if it's in the system PATH</div>
+          </div>
+          <div class="field" style="margin-top:10px">
+            <label data-i18n="set.ftp_to.label">FTP timeout (seconds)</label>
+            <input type="number" id="s-ftp-timeout" value="30" min="5" max="300" style="width:90px">
+            <div class="note" data-i18n="set.ftp_to.note">Timeout for FTP operations. Default: 30s.</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="set.startup.title">Startup</h3>
+          <div class="cb-row" style="margin-bottom:10px">
+            <label class="toggle"><input type="checkbox" id="s-autostart"><span class="toggle-slider"></span></label>
+            <label for="s-autostart" data-i18n="set.autostart.label">Start with Windows</label>
+          </div>
+          <div class="cb-row">
+            <label class="toggle"><input type="checkbox" id="s-start-hidden"><span class="toggle-slider"></span></label>
+            <label for="s-start-hidden" data-i18n="set.hidden.label">Start minimized (only with autostart)</label>
+          </div>
+          <div class="field" style="margin-top:12px">
+            <label data-i18n="set.close_behavior.label">When pressing X (close button)</label>
+            <select id="s-close-to-tray">
+              <option value="auto"   data-i18n="set.close_behavior.auto">Auto (minimize if scheduled shows exist)</option>
+              <option value="always" data-i18n="set.close_behavior.always">Always minimize to tray</option>
+              <option value="never"  data-i18n="set.close_behavior.never">Always quit</option>
+            </select>
+            <div class="note" data-i18n="set.close_behavior.note">Auto: if no scheduled shows exist, X closes the app completely.</div>
+          </div>
+        </div>
+        <div class="form-section" style="margin-bottom:0">
+          <h3 data-i18n="set.lang.title">Language</h3>
+          <div class="field">
+            <label data-i18n="set.lang.label">Interface language</label>
+            <select id="s-language">
+              <option value="en" data-i18n="set.lang.en">English</option>
+              <option value="it" data-i18n="set.lang.it">Italiano</option>
+              <option value="es" data-i18n="set.lang.es">Español</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="set-section" id="set-email">
+        <div class="form-section">
+          <h3 data-i18n="set.email.title">Email alerts</h3>
+          <div class="cb-row" style="margin-bottom:12px">
+            <label class="toggle"><input type="checkbox" id="s-email-enabled"><span class="toggle-slider"></span></label>
+            <label for="s-email-enabled" data-i18n="set.email.en.label">Enable email notifications</label>
+          </div>
+          <div id="email-fields">
+            <div class="row2">
+              <div class="field">
+                <label data-i18n="set.smtp.host.label">SMTP server</label>
+                <input type="text" id="s-smtp-host" placeholder="smtp.gmail.com">
+              </div>
+              <div class="field">
+                <label data-i18n="set.smtp.port.label">Port</label>
+                <input type="number" id="s-smtp-port" value="587" min="1" max="65535" style="width:80px">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label data-i18n="set.smtp.user.label">SMTP user</label>
+                <input type="text" id="s-smtp-user" data-i18n-placeholder="set.smtp.user.ph">
+              </div>
+              <div class="field">
+                <label data-i18n="set.smtp.pass.label">SMTP password</label>
+                <input type="password" id="s-smtp-pass" placeholder="••••••••">
+              </div>
+            </div>
+            <div class="field">
+              <label data-i18n="set.smtp.from.label">Sender address (optional)</label>
+              <input type="text" id="s-smtp-from" data-i18n-placeholder="set.smtp.from.ph">
+            </div>
+            <div class="cb-row" style="margin-bottom:12px">
+              <input type="checkbox" id="s-smtp-secure">
+              <label for="s-smtp-secure" data-i18n="set.smtp.secure.label">Use SSL/TLS (port 465)</label>
+            </div>
+            <div class="cb-row" style="margin-bottom:12px">
+              <input type="checkbox" id="s-smtp-selfsigned">
+              <label for="s-smtp-selfsigned" data-i18n="set.smtp.selfsigned.label">Allow self-signed certificates (not recommended)</label>
+            </div>
+            <div class="field">
+              <label data-i18n="set.recip.label">Recipients</label>
+              <input type="email" id="s-email-recip-1" placeholder="alerts1@example.com" style="margin-bottom:6px">
+              <input type="email" id="s-email-recip-2" placeholder="alerts2@example.com" style="margin-bottom:6px">
+              <input type="email" id="s-email-recip-3" placeholder="alerts3@example.com">
+            </div>
+            <div style="display:flex;gap:20px;margin-bottom:10px;flex-wrap:wrap">
+              <div class="cb-row">
+                <input type="checkbox" id="s-email-on-error" checked>
+                <label for="s-email-on-error" data-i18n="set.on_error.label">Alert on error</label>
+              </div>
+              <div class="cb-row">
+                <input type="checkbox" id="s-email-on-noupdate">
+                <label for="s-email-on-noupdate" data-i18n="set.on_noupdate.label">Alert if file not updated for 3+ runs</label>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-muted" id="btn-test-email" data-i18n="set.test_email">📧 Test SMTP</button>
+              <span id="email-test-result" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FTP Bookmarks -->
+      <div class="set-section" id="set-ftp">
+        <div class="form-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 data-i18n="set.nav.ftp">📡 FTP Bookmarks</h3>
+            <button class="btn btn-primary btn-sm" id="btn-add-ftp-bookmark" data-i18n="bm.add">+ New</button>
+          </div>
+          <div class="note" style="margin-bottom:14px" data-i18n="bm.settings.note">Manage FTP credentials. Save &amp; propagate updates all linked shows (credentials only — each show keeps its own remote path).</div>
+          <div id="ftp-bookmarks-list"></div>
+        </div>
+      </div>
+
+      <!-- Backup -->
+      <div class="set-section" id="set-backup">
+        <div class="form-section">
+          <h3 data-i18n="set.backup.title">Configuration backup</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-muted" id="btn-export-config" data-i18n="set.export">💾 Export all</button>
+            <button class="btn btn-muted" id="btn-import-config" data-i18n="set.import">📥 Import</button>
+            <span id="backup-status" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div class="note" style="margin-top:8px" data-i18n="set.backup.note">Export/import shows, settings and FTP bookmarks.</div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="set-section" id="set-info">
+        <div class="form-section" style="margin-bottom:0">
+          <h3 data-i18n="set.info.title">Info</h3>
+          <div class="note" style="line-height:2">
+            <span data-i18n="set.info.work">Work files: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\work\</code><br>
+            <span data-i18n="set.info.logs">Logs: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\logs\</code><br>
+            <span data-i18n="set.info.hist">History: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\history\</code>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── ABOUT MODAL ── -->
+<div class="modal-overlay hidden" id="modal-about">
+  <div class="modal about-modal">
+    <div class="about-header">
+      <div class="about-icon"><img src="../assets/flowcast_scritta.png" alt="FlowCast" style="height:56px"></div>
+      <div>
+        <div class="about-version" id="about-version" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="about-body">
+      <p data-i18n="about.desc1">Automation system for the production and distribution of radio broadcasts and audio programs.</p>
+      <p data-i18n="about.desc2">Manages audio source acquisition, audio conversion, local archiving and automated FTP upload with integrated scheduling.</p>
+      <div class="about-credits">
+        <div class="about-row"><span class="about-label" data-i18n="about.dev">Developed by</span><span>Graziano Melzi · OnAir Garage</span></div>
+        <div class="about-row"><span class="about-label" data-i18n="about.email">Email</span><a href="mailto:hello@onairgarage.com">hello@onairgarage.com</a></div>
+        <div class="about-row"><span class="about-label" data-i18n="about.website">Website</span><a href="https://onairgarage.com/tools/flowcast/">onairgarage.com</a></div>
+        <div class="about-row"><span class="about-label" data-i18n="about.license">License</span><span>MIT</span></div>
+        <div class="about-row"><span class="about-label" data-i18n="about.copyright">Copyright</span><span>© 2026 Graziano Melzi</span></div>
+        <div class="about-row"><span class="about-label" data-i18n="about.platform">Platform</span><span>Electron · Node.js · FFmpeg</span></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-muted" id="btn-about-close" data-i18n="about.close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HELP MODAL ── -->
+<div class="modal-overlay hidden" id="modal-help">
+  <div class="modal help-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="help-title" data-i18n="help.title">❓ FlowCast Guide</h2>
+      <button class="btn btn-muted btn-sm" id="btn-help-close">✕</button>
+    </div>
+    <div class="help-content" id="help-content">
+      <div class="help-section"><h3 data-i18n="help.s1.title"></h3><div data-i18n-html="help.s1.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s2.title"></h3><div data-i18n-html="help.s2.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s3.title"></h3><div data-i18n-html="help.s3.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s4.title"></h3><div data-i18n-html="help.s4.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s5.title"></h3><div data-i18n-html="help.s5.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s6.title"></h3><div data-i18n-html="help.s6.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s7.title"></h3><div data-i18n-html="help.s7.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s8.title"></h3><div data-i18n-html="help.s8.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s9.title"></h3><div data-i18n-html="help.s9.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s10.title"></h3><div data-i18n-html="help.s10.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s11.title"></h3><div data-i18n-html="help.s11.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s12.title"></h3><div data-i18n-html="help.s12.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s13.title"></h3><div data-i18n-html="help.s13.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s14.title"></h3><div data-i18n-html="help.s14.body"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ftp-bookmarks-list moved to #page-settings > #set-ftp -->
+
+<script src="locales/en.js"></script>
+<script src="locales/it.js"></script>
+<script src="locales/es.js"></script>
+<!-- ── FTP BROWSER MODAL ── -->
+<div class="modal-overlay hidden" id="modal-ftp-browser">
+  <div class="modal ftp-browser-modal">
+    <div class="ftp-browser-header">
+      <button class="btn btn-muted btn-sm" id="ftp-browser-up" title="Su">↑ Su</button>
+      <div class="ftp-browser-path" id="ftp-browser-path">/</div>
+      <button class="btn-icon" id="ftp-browser-close" title="Chiudi">✕</button>
+    </div>
+    <div class="ftp-browser-list" id="ftp-browser-list">
+      <div class="ftp-browser-loading" id="ftp-browser-loading">Connessione in corso…</div>
+    </div>
+    <div class="ftp-browser-footer">
+      <span class="ftp-browser-selected" id="ftp-browser-selected"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-muted btn-sm" id="ftp-browser-cancel">Annulla</button>
+        <button class="btn btn-primary btn-sm" id="ftp-browser-select" disabled>✓ Seleziona</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="i18n.js"></script>
+<script src="renderer.js"></script>
+</body>
+</html>

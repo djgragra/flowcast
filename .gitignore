@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Old assets archive
+Archivio/
+
+# Electron builder cache
+.webpack/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.suo
+*.user
+
+# Logs (runtime, not source)
+*.log
+
+# Secrets / local config (never commit)
+.env
+.env.local
+secrets.json
