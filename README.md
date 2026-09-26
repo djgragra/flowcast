@@ -37,17 +37,20 @@ FlowCast calls FFmpeg as an external program and does not ship it. Install it on
 
 With winget: `winget install Gyan.FFmpeg` (then restart FlowCast so it sees the new `PATH`).
 
-Use the **Test** button next to *FFmpeg path* to check it. If FFmpeg cannot be started, FlowCast shows a warning on the dashboard.
+Use the **Test** button next to *FFmpeg path* to check it: it shows the FFmpeg version and any output format your build cannot encode. If FFmpeg cannot be started, or cannot encode a format used by one of your shows, FlowCast shows a warning on the dashboard.
+
+**Tested FFmpeg versions** (Windows x64, all four output formats, including joining multiple files): 4.3.1, 4.4.1, 5.1.2, 6.1.1, 7.1.1, 8.1.2 and 9.0.2 (gyan.dev *essentials* builds), plus BtbN 9.0 GPL and LGPL builds. FlowCast only uses long-standing FFmpeg features, so any version from 4.3 on should work.
+OGG output needs the `libvorbis` encoder, which some builds leave out (for example the Homebrew build on macOS); MP3 needs `libmp3lame`.
 
 If you only use the *Direct copy* output format with a single source file, FFmpeg is not needed.
 
 ## Install
 
-Download the installer (`FlowCast Setup <version>.exe`) from the [Releases](../../releases) page.
+Download the installer (`FlowCast-Setup-<version>.exe`) from the [Releases](../../releases) page.
 Check the file against `SHA256SUMS.txt`, published with each release:
 
 ```powershell
-Get-FileHash ".\FlowCast Setup <version>.exe" -Algorithm SHA256
+Get-FileHash .\FlowCast-Setup-<version>.exe -Algorithm SHA256
 ```
 
 The installer is **not code-signed**, so Windows SmartScreen may show "Windows protected your PC": click *More info* → *Run anyway*.

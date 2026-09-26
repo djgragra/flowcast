@@ -250,6 +250,8 @@ window.LOCALES.it = {
   'set.ffmpeg.ok':         'FFmpeg {v} trovato ✓',
   'set.ffmpeg.fail':       'FFmpeg non funziona: {error}',
   'set.ffmpeg.notfound':   'programma non trovato in questo percorso né nel PATH di sistema',
+  'ffmpeg.no_encoder':     'La tua build di FFmpeg non sa codificare {formats}, usato da alcuni show. Installa una build completa (es. gyan.dev essentials).',
+  'set.ffmpeg.missing_fmt': 'formati non supportati da questa build: {formats}',
   'dlg.audio_files':       'File audio',
   'dlg.text_files':        'File di testo',
   'dlg.executables':       'Programmi',

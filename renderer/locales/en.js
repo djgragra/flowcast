@@ -269,6 +269,8 @@ window.LOCALES.en = {
   'set.ffmpeg.ok':          'FFmpeg {v} found ✓',
   'set.ffmpeg.fail':        'FFmpeg not working: {error}',
   'set.ffmpeg.notfound':    'program not found at this path or in the system PATH',
+  'ffmpeg.no_encoder':      'Your FFmpeg build cannot encode {formats}, used by some shows. Install a full build (e.g. gyan.dev essentials).',
+  'set.ffmpeg.missing_fmt': 'formats not supported by this build: {formats}',
   'dlg.audio_files':        'Audio files',
   'dlg.text_files':         'Text files',
   'dlg.executables':        'Programs',

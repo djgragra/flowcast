@@ -1250,8 +1250,15 @@ async function saveSettings() {
 async function checkFfmpegWarning() {
   const res = await api.checkFfmpeg();
   const el  = document.getElementById('ffmpeg-warning');
-  document.getElementById('ffmpeg-warning-text').textContent = t('ffmpeg.missing', { path: res.path });
-  el.classList.toggle('hidden', res.ok);
+  // Output formats used by enabled shows that this FFmpeg build cannot encode
+  const unsupported = res.ok
+    ? [...new Set(_shows.filter(s => s.enabled !== false).map(s => s.outputFormat || 'mp3'))]
+        .filter(f => (res.missing || []).includes(f))
+    : [];
+  document.getElementById('ffmpeg-warning-text').textContent = res.ok
+    ? t('ffmpeg.no_encoder', { formats: unsupported.map(f => f.toUpperCase()).join(', ') })
+    : t('ffmpeg.missing', { path: res.path });
+  el.classList.toggle('hidden', res.ok && unsupported.length === 0);
 }
 
 async function refreshAboutVersion() {
@@ -1585,10 +1592,11 @@ document.getElementById('btn-test-ffmpeg').addEventListener('click', async () =>
   el.style.color = 'var(--muted)';
   el.textContent = '…';
   const res = await api.checkFfmpeg(document.getElementById('s-ffmpeg').value.trim() || 'ffmpeg');
-  el.style.color = res.ok ? 'var(--green)' : 'var(--red)';
-  el.textContent = res.ok
-    ? t('set.ffmpeg.ok', { v: res.version })
-    : t('set.ffmpeg.fail', { error: res.error === 'not-found' ? t('set.ffmpeg.notfound') : res.error });
+  const missing = (res.missing || []).map(f => f.toUpperCase()).join(', ');
+  el.style.color = !res.ok ? 'var(--red)' : (missing ? 'var(--warn)' : 'var(--green)');
+  el.textContent = !res.ok
+    ? t('set.ffmpeg.fail', { error: res.error === 'not-found' ? t('set.ffmpeg.notfound') : res.error })
+    : t('set.ffmpeg.ok', { v: res.version }) + (missing ? ' — ' + t('set.ffmpeg.missing_fmt', { formats: missing }) : '');
 });
 document.getElementById('btn-ffmpeg-settings').addEventListener('click', () => openSettings('general'));
 

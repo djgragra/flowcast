@@ -592,15 +592,27 @@ ipcMain.handle('test-email', (_, cfg) => emailNotifier.testConnection(cfg));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
-// FFmpeg is an external program: check it can be started and report its version
-ipcMain.handle('check-ffmpeg', (_, ffmpegPath) => new Promise(resolve => {
-  const bin = (ffmpegPath || store.getSettings().ffmpegPath || 'ffmpeg').trim() || 'ffmpeg';
-  execFile(bin, ['-version'], { timeout: 10000, windowsHide: true }, (err, stdout) => {
-    if (err) return resolve({ ok: false, path: bin, error: err.code === 'ENOENT' ? 'not-found' : err.message });
-    const m = /ffmpeg version (\S+)/.exec(stdout || '');
-    resolve({ ok: true, path: bin, version: m ? m[1] : '' });
+// FFmpeg is an external program: check it can be started, report its version
+// and which output formats its build can encode (e.g. some builds lack libvorbis)
+const FFMPEG_ENCODERS = { mp3: 'libmp3lame', aac: 'aac', ogg: 'libvorbis' };
+
+function runFfmpegInfo(bin, args) {
+  return new Promise(resolve => {
+    execFile(bin, args, { timeout: 10000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (err, stdout) => resolve({ err, stdout: stdout || '' }));
   });
-}));
+}
+
+ipcMain.handle('check-ffmpeg', async (_, ffmpegPath) => {
+  const bin = (ffmpegPath || store.getSettings().ffmpegPath || 'ffmpeg').trim() || 'ffmpeg';
+  const ver = await runFfmpegInfo(bin, ['-version']);
+  if (ver.err) return { ok: false, path: bin, error: ver.err.code === 'ENOENT' ? 'not-found' : ver.err.message };
+  const m   = /ffmpeg version (\S+)/.exec(ver.stdout);
+  const enc = await runFfmpegInfo(bin, ['-hide_banner', '-encoders']);
+  const missing = enc.err ? [] : Object.keys(FFMPEG_ENCODERS)
+    .filter(fmt => !new RegExp(`^\\s*A\\S*\\s+${FFMPEG_ENCODERS[fmt]}\\s`, 'm').test(enc.stdout));
+  return { ok: true, path: bin, version: m ? m[1] : '', missing };
+});
 
 ipcMain.handle('next-run', (_, show) => {
   const d = scheduler.nextRun(show);

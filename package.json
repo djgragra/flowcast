@@ -1,6 +1,6 @@
 {
   "name": "flowcast",
-  "version": "26.6.0",
+  "version": "26.9.1",
   "description": "Automated production and delivery of radio shows and audio programs: FFmpeg conversion, FTP upload, scheduling and email alerts.",
   "author": "Graziano Melzi <hello@onairgarage.com> (https://onairgarage.com)",
   "homepage": "https://onairgarage.com/tools/flowcast/",
@@ -38,6 +38,7 @@
     },
     "win": {
       "icon": "assets/icon.ico",
+      "artifactName": "FlowCast-Setup-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
