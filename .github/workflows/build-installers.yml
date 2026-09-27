@@ -38,6 +38,7 @@ jobs:
           name: flowcast-${{ matrix.name }}
           path: ${{ matrix.artifact }}
           if-no-files-found: error
+          retention-days: 1  # only needed to hand files to the release job; keeps Actions storage near zero
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
