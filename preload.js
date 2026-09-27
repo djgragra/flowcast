@@ -28,6 +28,14 @@ contextBridge.exposeInMainWorld('api', {
 
   // Email test
   testEmail:      (cfg) => ipcRenderer.invoke('test-email', cfg),
+  testTelegram:   (cfg) => ipcRenderer.invoke('test-telegram', cfg),
+
+  // Dashboard data
+  getQueue:       (days) => ipcRenderer.invoke('get-queue', days),
+  getStats:       ()     => ipcRenderer.invoke('get-stats'),
+  getActivity:    (n)    => ipcRenderer.invoke('get-activity', n),
+  getRunning:     ()     => ipcRenderer.invoke('get-running'),
+  getPlatform:    ()     => ipcRenderer.invoke('get-platform'),
 
   // FFmpeg check (optional path; default: path from settings)
   checkFfmpeg:    (p)   => ipcRenderer.invoke('check-ffmpeg', p),

@@ -17,19 +17,8 @@ function parseRecipients(str) {
   return (str || '').split(/[\n,;]/).map(s => s.trim()).filter(Boolean);
 }
 
-/**
- * Send an alert email.
- * type: 'error' | 'no-update'
- * details: { message?, ops?: {ftp,local,archive}, streak? }
- */
-async function sendAlert(emailConfig, show, type, details = {}) {
-  if (!emailConfig || !emailConfig.enabled) return;
-  const recipients = parseRecipients(emailConfig.recipients);
-  if (!recipients.length) return;
-  if (!emailConfig.smtp || !emailConfig.smtp.host) return;
-  if (type === 'error'     && !emailConfig.onError)    return;
-  if (type === 'no-update' && !emailConfig.onNoUpdate) return;
-
+// Subject and text of an alert, shared by email and Telegram
+function buildMessage(show, type, details = {}) {
   const now = new Date().toLocaleString(dateLocale());
   let subject, body;
 
@@ -58,8 +47,27 @@ async function sendAlert(emailConfig, show, type, details = {}) {
       t('mail.noupd_line2')
     ].join('\n');
   } else {
-    return;
+    return null;
   }
+  return { subject, body };
+}
+
+/**
+ * Send an alert email.
+ * type: 'error' | 'no-update'
+ * details: { message?, ops?: {ftp,local,archive}, streak? }
+ */
+async function sendAlert(emailConfig, show, type, details = {}) {
+  if (!emailConfig || !emailConfig.enabled) return;
+  const recipients = parseRecipients(emailConfig.recipients);
+  if (!recipients.length) return;
+  if (!emailConfig.smtp || !emailConfig.smtp.host) return;
+  if (type === 'error'     && !emailConfig.onError)    return;
+  if (type === 'no-update' && !emailConfig.onNoUpdate) return;
+
+  const msg = buildMessage(show, type, details);
+  if (!msg) return;
+  const { subject, body } = msg;
 
   const from = emailConfig.from || emailConfig.smtp.user
     || `flowcast@${emailConfig.smtp.host}`;
@@ -84,4 +92,4 @@ async function testConnection(emailConfig) {
   }
 }
 
-module.exports = { sendAlert, testConnection };
+module.exports = { sendAlert, testConnection, buildMessage };

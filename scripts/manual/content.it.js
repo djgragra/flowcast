@@ -13,7 +13,9 @@ Prende i file audio esportati dal sistema di messa in onda o di produzione, li c
 e consegna il risultato via FTP, in una cartella locale e in archivio — secondo una pianificazione, con avvisi email quando qualcosa va storto.`,
 
   shots: {
-    'dashboard':        'Dashboard con l\'elenco degli show',
+    'dashboard':        'Dashboard con le statistiche',
+    'schedule':         'Palinsesto — gli show',
+    'timeline':         'Palinsesto — timeline dei prossimi 7 giorni',
     'show-general':     'Show — scheda Generale',
     'show-sources':     'Show — scheda Sorgenti Audio',
     'show-schedule':    'Show — scheda Schedule',
@@ -27,7 +29,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
     { title: 'Requisiti', html: `
 <table>
 <tr><th>Componente</th><th>Requisito</th></tr>
-<tr><td>Sistema operativo</td><td>Windows 10 o Windows 11, 64 bit</td></tr>
+<tr><td>Sistema operativo</td><td>Windows 10 o 11 (64 bit) · macOS 13 Ventura o successivo (Intel e Apple silicon) · Linux 64 bit (AppImage)</td></tr>
 <tr><td>FFmpeg</td><td>Da installare a parte, versione 4.3 o successiva (vedi capitolo 3). Non serve per la <em>Copia diretta</em> di un solo file.</td></tr>
 <tr><td>Rete</td><td>Solo per upload FTP, avvisi email e controllo aggiornamenti</td></tr>
 </table>
@@ -35,14 +37,18 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 
     { title: 'Installazione e primo avvio', html: `
 <ol>
-<li>Scarica <code>FlowCast-Setup-&lt;versione&gt;.exe</code> da <code>github.com/djgragra/flowcast/releases</code> (link anche su onairgarage.com).</li>
+<li>Scarica il file per il tuo sistema da <code>github.com/djgragra/flowcast/releases</code> (link anche su onairgarage.com): <code>FlowCast-Setup-&lt;versione&gt;.exe</code> per Windows, <code>FlowCast-&lt;versione&gt;-arm64.dmg</code> (Apple silicon) o <code>-x64.dmg</code> (Intel) per macOS, <code>FlowCast-&lt;versione&gt;-x86_64.AppImage</code> per Linux.</li>
 <li>Facoltativo: verifica il file con <code>SHA256SUMS.txt</code> pubblicato con la release. In PowerShell:<br><code>Get-FileHash .\\FlowCast-Setup-&lt;versione&gt;.exe -Algorithm SHA256</code></li>
 <li>Avvia l'installer. Non è firmato digitalmente, quindi Windows SmartScreen può mostrare <em>PC protetto da Windows</em>: clicca <strong>Ulteriori informazioni → Esegui comunque</strong>.</li>
 <li>Scegli la cartella di installazione (predefinita <code>%LOCALAPPDATA%\\Programs\\FlowCast</code>) e segui la procedura guidata.</li>
 <li>Avvia FlowCast dal menu Start o dal collegamento sul desktop.</li>
 </ol>
-<p>Tutti i dati (show, impostazioni, log, registro) stanno in <code>%APPDATA%\\FlowCast\\</code> e restano quando aggiorni o reinstalli.</p>
-<div class="note"><strong>Aggiornamento dalla versione 26.5.0 o precedenti.</strong> Quelle versioni avevano un identificativo diverso, quindi il nuovo installer non le sostituisce. Esporta un backup (capitolo 15), chiudi FlowCast dalla tray, disinstalla la vecchia FlowCast da <em>Impostazioni → App</em>, poi installa la nuova versione. Show e impostazioni restano.</div>` },
+<h3>macOS</h3>
+<p>Apri il <code>.dmg</code> e trascina FlowCast in <em>Applicazioni</em>. FlowCast non è firmato da Apple, quindi la prima volta macOS lo blocca: apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> accanto al messaggio su FlowCast.</p>
+<h3>Linux</h3>
+<p>Rendi eseguibile l'AppImage (<code>chmod +x FlowCast-*.AppImage</code>) e avviala. Su alcune distribuzioni le AppImage richiedono il pacchetto <code>libfuse2</code>. L'avvio all'accesso non è disponibile su Linux.</p>
+<p>Tutti i dati (show, impostazioni, log, registro) restano quando aggiorni o reinstalli; la loro cartella è indicata in <em>Impostazioni → Info</em> (vedi capitolo 17).</p>
+<div class="note"><strong>Aggiornamento dalla versione 26.5.0 o precedenti.</strong> Quelle versioni avevano un identificativo diverso, quindi il nuovo installer non le sostituisce. Esporta un backup (capitolo 16), chiudi FlowCast dalla tray, disinstalla la vecchia FlowCast da <em>Impostazioni → App</em>, poi installa la nuova versione. Show e impostazioni restano.</div>` },
 
     { title: 'Installare FFmpeg', html: `
 <p>FlowCast usa FFmpeg come programma esterno per convertire e unire l'audio. FFmpeg è gratuito e open source, ma non è incluso in FlowCast.</p>
@@ -52,26 +58,27 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li>Aggiungi <code>C:\\ffmpeg\\bin</code> al PATH di sistema, oppure apri <em>Impostazioni → Generale → Strumenti</em> e imposta <strong>Percorso ffmpeg</strong> su <code>C:\\ffmpeg\\bin\\ffmpeg.exe</code>.<br>Con winget: <code>winget install Gyan.FFmpeg</code>, poi riavvia FlowCast.</li>
 <li>Premi <strong>Test</strong> accanto al percorso: FlowCast mostra la versione di FFmpeg e gli eventuali formati che la build non sa codificare.</li>
 </ol>
-<p>Se FFmpeg non si avvia, o non sa codificare un formato usato da uno show, la dashboard mostra un avviso.</p>
+<p><strong>macOS</strong>: <code>brew install ffmpeg</code> (Homebrew). FlowCast lo trova da solo in <code>/opt/homebrew/bin</code> o <code>/usr/local/bin</code>. La build di Homebrew non ha <code>libvorbis</code>, quindi con quella l'uscita OGG non è disponibile. <strong>Linux</strong>: installa il pacchetto <code>ffmpeg</code> della tua distribuzione (es. <code>sudo apt install ffmpeg</code>).</p>
+<p>Se FFmpeg non si avvia, o non sa codificare un formato usato da uno show, compare un avviso sotto la barra in alto.</p>
 <p><strong>Versioni provate</strong> (tutti i formati di uscita, compresa l'unione di più file): 4.3.1, 4.4.1, 5.1.2, 6.1.1, 7.1.1, 8.1.2 e 9.0.2. L'uscita OGG richiede l'encoder <code>libvorbis</code> e l'MP3 richiede <code>libmp3lame</code>: le build gyan.dev e BtbN li includono entrambi.</p>` },
 
     { title: 'Guida rapida: il primo show', html: `
 <ol>
 <li>Apri <strong>⚙ Impostazioni</strong> (in fondo alla barra laterale): imposta il percorso di FFmpeg se serve, eventualmente il <em>Percorso BASE sorgenti WAV</em> e il <em>Percorso BASE archivio</em>, poi <strong>💾 Salva</strong>.</li>
-<li>Premi <strong>+</strong> accanto a <em>Show</em> nella barra laterale.</li>
+<li>Premi <strong>+ Show</strong> nella barra laterale.</li>
 <li><em>Generale</em>: nome del programma, slug (nome del file di uscita), formato e bitrate.</li>
 <li><em>Sorgenti Audio</em>: aggiungi i file audio che compongono la puntata, nell'ordine giusto.</li>
 <li><em>Schedule</em>: orario e frequenza, oppure scegli la modalità <em>Manuale</em> nella scheda Generale.</li>
 <li><em>Output &amp; FTP</em>: upload FTP e/o una cartella di uscita locale. Usa <strong>🔌 Testa connessione</strong>.</li>
 <li><strong>💾 Salva</strong>, poi fai un <strong>🧪 Dry Run</strong> per controllare tutto senza caricare né copiare nulla.</li>
 </ol>
-{{shot:dashboard}}` },
+{{shot:schedule}}` },
 
     { title: 'Impostazioni dello show', html: `
 <p>Ogni show ha queste schede:</p>
 <table>
 <tr><th>Scheda</th><th>Contenuto</th></tr>
-<tr><td>Generale</td><td>Nome del programma, slug, formato di uscita, bitrate, modalità di esecuzione (Schedulato / Manuale)</td></tr>
+<tr><td>Generale</td><td>Nome del programma, categoria, slug, formato di uscita, bitrate, modalità di esecuzione (Schedulato / Manuale)</td></tr>
 <tr><td>Sorgenti Audio</td><td>Percorso BASE sorgenti e l'elenco dei file audio, uniti in questo ordine</td></tr>
 <tr><td>Schedule</td><td>Orario, frequenza, giorni, data di inizio e di fine</td></tr>
 <tr><td>Output &amp; FTP</td><td>Upload FTP, cartella di uscita locale</td></tr>
@@ -144,16 +151,37 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 </ul>
 <p>Imposta server SMTP, porta, utente, password, mittente e fino a tre destinatari, poi premi <strong>📧 Testa SMTP</strong>.</p>
 {{shot:settings-email}}
-<p><strong>Certificati.</strong> FlowCast verifica il certificato del server di posta, e il nome del server deve corrispondere. Molti provider usano per il server SMTP un nome diverso dal tuo dominio: usa il nome indicato dal tuo provider. <em>Consenti certificati self-signed</em> serve solo per server interni di cui ti fidi.</p>` },
+<p><strong>Certificati.</strong> FlowCast verifica il certificato del server di posta, e il nome del server deve corrispondere. Molti provider usano per il server SMTP un nome diverso dal tuo dominio: usa il nome indicato dal tuo provider. <em>Consenti certificati self-signed</em> serve solo per server interni di cui ti fidi.</p>
+<h3>Telegram</h3>
+<p>Gli stessi avvisi possono arrivare anche su Telegram (stessa pagina, <em>Avvisi Telegram</em>):</p>
+<ol>
+<li>Su Telegram scrivi a <strong>@BotFather</strong>, crea un bot (<code>/newbot</code>) e copia il <em>token</em>.</li>
+<li>Invia un messaggio al tuo bot, oppure aggiungilo a un gruppo. Trova il <em>chat ID</em> con <strong>@userinfobot</strong> o aprendo <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>.</li>
+<li>Incolla token e chat ID, scegli gli avvisi e premi <strong>✈ Testa Telegram</strong>, poi salva.</li>
+</ol>` },
 
     { title: 'Dashboard', html: `
-<p>La dashboard mostra una scheda per ogni show: pianificazione, ultimo esito, prossima esecuzione ed esito di ogni passaggio (📁 locale, 📡 FTP, 🗄 archivio: verde = ok, rosso = errore, grigio = saltato). Gli show in esecuzione si illuminano di arancione.</p>
+<p>La <strong>barra in alto</strong>, sempre visibile, mostra l'orologio, la <em>prossima produzione</em> con il conto alla rovescia e gli show <em>in produzione</em> in quel momento.</p>
+<p>La pagina <strong>Dashboard</strong> mostra le statistiche delle produzioni:</p>
 <ul>
-<li><strong>Ricerca</strong> per nome e <strong>filtri</strong>: Tutti, Non scaduti, Abilitati, Disabilitati, Con errore, Scaduti.</li>
-<li><strong>Ordinamento</strong> per Nome, Orario (giorno e ora) o Ultima esecuzione; la freccia inverte l'ordine.</li>
-<li><strong>☰</strong> nella barra del titolo nasconde la barra laterale.</li>
+<li>show totali e attivi, produzioni in coda nelle prossime 24 ore, prodotti e falliti oggi;</li>
+<li>percentuale di successo sugli ultimi 30 giorni, audio prodotto e durata media di una produzione;</li>
+<li>il grafico dell'<strong>attività</strong> degli ultimi 7, 14 o 30 giorni (verde = prodotti, rosso = falliti), le produzioni per show e per ora del giorno;</li>
+<li>prossime 24 ore, attività recente, show con errori e show per categoria.</li>
 </ul>
-<p>Una barra nella dashboard avvisa se FFmpeg manca o non sa codificare un formato in uso; una barra sotto la barra del titolo annuncia una nuova versione (capitolo 14).</p>` },
+{{shot:dashboard}}
+<p>Clicca una riga per aprire lo show, o una categoria per filtrare la barra laterale. Una produzione con upload, copia o archiviazione fallita conta come fallita. Le statistiche sono salvate giorno per giorno in <code>stats.json</code>; dopo l'aggiornamento da una versione precedente vengono ricostruite dal registro delle esecuzioni.</p>
+<p>Le barre sotto la barra in alto avvisano se FFmpeg manca o non sa codificare un formato in uso, e annunciano una nuova versione (capitolo 15).</p>` },
+
+    { title: 'Palinsesto, coda e categorie', html: `
+<p>Il <strong>Palinsesto</strong> (barra laterale) ha due viste:</p>
+<ul>
+<li><strong>Show</strong>: una scheda per ogni show con pianificazione, ultimo esito, prossima esecuzione ed esito di ogni passaggio (📁 locale, 📡 FTP, 🗄 archivio: verde = ok, rosso = errore, grigio = saltato). <strong>Ricerca</strong> per nome, <strong>filtri</strong> (Tutti, Non scaduti, Abilitati, Disabilitati, Con errore, Scaduti) e <strong>ordinamento</strong> per nome, orario o ultima esecuzione.</li>
+<li><strong>Timeline</strong>: tutte le produzioni delle prossime 24 ore o 7 giorni, giorno per giorno, con orario, formato, destinazioni e conto alla rovescia.</li>
+</ul>
+{{shot:timeline}}
+<p>Sotto i pulsanti di navigazione la barra laterale elenca le <strong>prossime produzioni in coda</strong>; la prima è evidenziata. Sotto ci sono gli show, ciascuno con il suo stato (OK, Errore, Disattivo…) e la prossima esecuzione.</p>
+<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro).</p>` },
 
     { title: 'Impostazioni', html: `
 <table>
@@ -162,7 +190,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <tr><td>Percorso BASE archivio</td><td>prefisso comune per le cartelle di archivio</td></tr>
 <tr><td>Percorso ffmpeg e Test</td><td>vedi capitolo 3</td></tr>
 <tr><td>Timeout FTP</td><td>secondi prima che un'operazione FTP venga interrotta (predefinito 30)</td></tr>
-<tr><td>Avvia con Windows</td><td>avvia FlowCast all'accesso, anche ridotto a icona</td></tr>
+<tr><td>Avvia all'accesso</td><td>avvia FlowCast all'accesso, anche ridotto a icona (Windows e macOS)</td></tr>
 <tr><td>Alla pressione di X</td><td>Automatico (riduce nella tray se esistono show pianificati), riduci sempre nella tray, oppure chiudi sempre</td></tr>
 <tr><td>Lingua</td><td>English, Italiano, Español</td></tr>
 <tr><td>Tema</td><td>pulsante ☀️/🌙 nella barra del titolo</td></tr>
@@ -170,7 +198,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 {{shot:settings-general}}` },
 
     { title: 'Tray di sistema', html: `
-<p>FlowCast resta attivo nell'area di notifica quando chiudi la finestra (secondo l'impostazione <em>Alla pressione di X</em>). Doppio clic sull'icona per aprire la finestra. Tasto destro per <em>Esegui ora</em> su ogni show pianificato attivo, e <strong>Esci</strong> per chiudere del tutto FlowCast.</p>` },
+<p>FlowCast resta attivo nell'area di notifica (la barra dei menu su macOS) quando chiudi la finestra, secondo l'impostazione <em>Alla pressione di X</em>. Doppio clic sull'icona per aprire la finestra. Tasto destro per <em>Esegui ora</em> su ogni show pianificato attivo, e <strong>Esci</strong> per chiudere del tutto FlowCast.</p>` },
 
     { title: 'Aggiornamenti', html: `
 <p>FlowCast controlla se c'è una nuova versione all'avvio e ogni 24 ore. Quando ce n'è una, compare una barra sotto la barra del titolo:</p>
@@ -193,13 +221,16 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <div class="note"><strong>Il backup contiene le password FTP e SMTP in chiaro.</strong> Conservalo in un posto sicuro e cancella le copie che non servono più.</div>` },
 
     { title: 'File e log', html: `
+<p>La cartella dati è <code>%APPDATA%\\flowcast</code> su Windows, <code>~/Library/Application Support/flowcast</code> su macOS e <code>~/.config/flowcast</code> su Linux; <em>Impostazioni → Info</em> mostra il percorso esatto.</p>
 <table>
-<tr><th>Percorso</th><th>Contenuto</th></tr>
-<tr><td><code>%APPDATA%\\FlowCast\\data.json</code></td><td>show, impostazioni e bookmark</td></tr>
-<tr><td><code>%APPDATA%\\FlowCast\\work\\&lt;slug&gt;\\</code></td><td>file di lavoro</td></tr>
-<tr><td><code>%APPDATA%\\FlowCast\\logs\\</code></td><td>un log per show, <code>_system.log</code> per gli errori generali</td></tr>
-<tr><td><code>%APPDATA%\\FlowCast\\history\\</code></td><td>registro delle esecuzioni</td></tr>
+<tr><th>File o cartella</th><th>Contenuto</th></tr>
+<tr><td><code>data.json</code></td><td>show, impostazioni e bookmark</td></tr>
+<tr><td><code>stats.json</code></td><td>statistiche giornaliere per la dashboard</td></tr>
+<tr><td><code>work/&lt;slug&gt;/</code></td><td>file di lavoro</td></tr>
+<tr><td><code>logs/</code></td><td>un log per show, <code>_system.log</code> per gli errori generali</td></tr>
+<tr><td><code>history/</code></td><td>registro delle esecuzioni</td></tr>
 </table>
+<p>La <strong>Console</strong> in fondo alla finestra mostra in tempo reale l'output di ogni produzione; clicca la sua barra per aprirla o chiuderla.</p>
 <p>La scheda <em>Log</em> di ogni show ha <strong>📁 Cartella</strong>, <strong>💾 Esporta</strong> e <strong>🗑 Pulisci</strong>.</p>` },
 
     { title: 'Domande frequenti e problemi', html: `
@@ -213,6 +244,8 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <ul><li>Controlla host, porta e credenziali con <strong>🔌 Testa connessione</strong>.</li><li>Controlla che la cartella remota esista (pulsante <strong>📂</strong>).</li><li>Per l'FTPS attiva <em>Usa FTPS (SSL/TLS)</em>; con connessioni lente aumenta il timeout FTP.</li></ul>
 <h3>Il test email fallisce con un errore di certificato</h3>
 <p>Il nome del server non corrisponde al suo certificato: usa il nome del server SMTP indicato dal tuo provider (capitolo 10).</p>
+<h3>macOS dice che FlowCast non può essere aperto</h3>
+<p>FlowCast non è firmato da Apple. Apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> (capitolo 2).</p>
 <h3>Due voci FlowCast in <em>App</em></h3>
 <p>Hai installato sopra la versione 26.5.0 o precedente. Esporta un backup, disinstalla entrambe le voci, installa la nuova versione e, se serve, importa il backup.</p>` },
 

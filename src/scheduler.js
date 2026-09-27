@@ -91,4 +91,29 @@ function nextRun(show) {
   } catch(e) { return null; }
 }
 
-module.exports = { scheduleShow, cancelShow, cancelAll, nextRun };
+// Runs of a show between from and to (local time), respecting its start/end dates.
+function upcomingRuns(show, from, to) {
+  const sch = show.schedule;
+  if (!sch || !sch.time || show.enabled === false || show.mode === 'manual') return [];
+  const [hh, mm] = sch.time.split(':').map(Number);
+  const dayMap = { MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6, SUN:0 };
+  const start = sch.startDate ? new Date(sch.startDate + 'T00:00:00') : null;
+  const end   = sch.endDate   ? new Date(sch.endDate   + 'T23:59:59') : null;
+  const out = [];
+  const d = new Date(from); d.setHours(hh, mm, 0, 0);
+  if (d < from) d.setDate(d.getDate() + 1);
+  while (d <= to) {
+    const dow = d.getDay();
+    const ok = sch.freq === 'daily' ? true
+      : sch.freq === 'weekdays' ? dow >= 1 && dow <= 5
+      : sch.freq === 'weekend'  ? dow === 0 || dow === 6
+      : sch.freq === 'specific' ? (sch.days || []).some(x => dayMap[x] === dow)
+      : false;
+    if (ok && (!start || d >= start) && (!end || d <= end)) out.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+    d.setHours(hh, mm, 0, 0);
+  }
+  return out;
+}
+
+module.exports = { scheduleShow, cancelShow, cancelAll, nextRun, upcomingRuns };

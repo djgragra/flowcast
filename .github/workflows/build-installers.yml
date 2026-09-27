@@ -48,6 +48,14 @@ jobs:
             name: windows
             command: npm run build
             artifact: dist/*.exe
+          - os: macos-latest
+            name: macos
+            command: npm run build:mac
+            artifact: dist/*.dmg
+          - os: ubuntu-latest
+            name: linux
+            command: npm run build:linux
+            artifact: dist/*.AppImage
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -66,6 +74,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Build user manuals (PDF, English and Italian)
+        if: matrix.name == 'windows'
         run: npm run manual
 
       - name: Upload installer artifact
@@ -76,6 +85,7 @@ jobs:
             ${{ matrix.artifact }}
             dist/*.pdf
           if-no-files-found: error
+          retention-days: 3
           retention-days: 1  # only needed to hand files to the release job; keeps Actions storage near zero
 
   release:

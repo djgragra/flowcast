@@ -4,6 +4,7 @@ const path         = require('path');
 const os           = require('os');
 const { spawn }    = require('child_process');
 const store        = require('./store');
+const { resolveFfmpeg } = require('./ffmpeg-path');
 const { t, dateLocale } = require('./i18n');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -92,17 +93,23 @@ function buildConvertArgs(outputFormat, bitrate) {
   }
 }
 
+// Absolute path: drive letter or UNC share; on macOS/Linux also a leading "/".
+// On Windows "\folder\file.wav" stays relative to the BASE path, as before.
+function isAbsolutePath(p) {
+  return /^[A-Za-z]:[\\/]/.test(p) || /^\\\\/.test(p) || (process.platform !== 'win32' && p.startsWith('/'));
+}
+
 // Resolve WAV path: absolute → use as-is; relative → prepend wavBase
 function resolveWavPath(base, wavPath) {
   if (!wavPath) return wavPath;
-  if (/^[A-Za-z]:[\\/]/.test(wavPath) || /^\\\\/.test(wavPath)) return wavPath;
+  if (isAbsolutePath(wavPath)) return wavPath;
   return base ? path.join(base, wavPath) : wavPath;
 }
 
 // Resolve archive path: absolute → use as-is; relative → prepend settings.baseArchive
 function resolveArchivePath(settings, archivePath) {
   if (!archivePath) return archivePath;
-  if (/^[A-Za-z]:[\\/]/.test(archivePath) || /^\\\\/.test(archivePath)) return archivePath;
+  if (isAbsolutePath(archivePath)) return archivePath;
   return settings.baseArchive ? path.join(settings.baseArchive, archivePath) : archivePath;
 }
 
@@ -120,7 +127,7 @@ function normalizeWavEntry(entry) {
  */
 async function processShow(show, logFn, progressFn, force = false, dryRun = false) {
   const settings     = store.getSettings();
-  const ffmpeg       = settings.ffmpegPath || 'ffmpeg';
+  const ffmpeg       = resolveFfmpeg(settings.ffmpegPath);
   const slug         = show.slug;
   const bitrate      = show.bitrate || '192k';
   const wavBase      = show.wavBase || '';

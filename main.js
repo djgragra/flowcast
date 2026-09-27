@@ -12,7 +12,10 @@ const processor      = require('./src/processor');
 const ftpClient      = require('./src/ftp-client');
 const emailNotifier  = require('./src/email-notifier');
 const i18n           = require('./src/i18n');
+const { resolveFfmpeg } = require('./src/ffmpeg-path');
 const updater        = require('./src/updater');
+const stats          = require('./src/stats');
+const telegram       = require('./src/telegram');
 const { execFile }   = require('child_process');
 
 // ── Main-process i18n ─────────────────────────────────────────────────────────
@@ -67,7 +70,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // --hidden arg: passed by Windows autostart when startHidden is enabled
-const START_HIDDEN = process.argv.includes('--hidden');
+const START_HIDDEN = process.argv.includes('--hidden') ||
+  (process.platform === 'darwin' && (() => { try { return app.getLoginItemSettings().wasOpenedAsHidden; } catch(_) { return false; } })());
 
 let mainWindow = null;
 let tray       = null;
@@ -145,6 +149,7 @@ function createWindow() {
 // ── App icon ─────────────────────────────────────────────────────────────────
 
 const ICON_PATH = path.join(__dirname, 'assets', 'icon.png');
+const TRAY_DIR  = path.join(__dirname, 'assets', 'tray');
 
 function loadAppIcon() {
   if (fs.existsSync(ICON_PATH)) {
@@ -165,8 +170,26 @@ function loadAppIcon() {
   return nativeImage.createFromBitmap(buf, { width: size, height: size });
 }
 
+// macOS: monochrome template image (adapts to light/dark menu bar); elsewhere the colour symbol.
+// nativeImage picks the @2x file automatically on high-DPI screens.
 function makeTrayIcon() {
+  const file = path.join(TRAY_DIR, process.platform === 'darwin' ? 'trayTemplate.png' : 'tray.png');
+  if (fs.existsSync(file)) {
+    const img = nativeImage.createFromPath(file);
+    if (process.platform === 'darwin') img.setTemplateImage(true);
+    return img;
+  }
   return loadAppIcon().resize({ width: 16, height: 16 });
+}
+
+// Start at login. Windows: "--hidden" starts in the tray; macOS: open hidden. Not available on Linux.
+function applyLoginItem(s) {
+  if (process.platform === 'linux') return;
+  try {
+    app.setLoginItemSettings(process.platform === 'darwin'
+      ? { openAtLogin: !!s.autostart, openAsHidden: !!(s.autostart && s.startHidden) }
+      : { openAtLogin: !!s.autostart, args: (s.autostart && s.startHidden) ? ['--hidden'] : [] });
+  } catch(_) {}
 }
 
 // ── Tray ──────────────────────────────────────────────────────────────────────
@@ -235,6 +258,7 @@ async function runShow(showId, force = false, dryRun = false) {
   const logFn      = line => logLine(showId, line);
   const progressFn = s    => notifyStatus(showId, s === 'start' ? 'running' : s);
   const settings   = store.getSettings();
+  const startedAt  = Date.now();
 
   try {
     const result = await processor.processShow(show, logFn, progressFn, force, dryRun);
@@ -271,11 +295,19 @@ async function runShow(showId, force = false, dryRun = false) {
     const updated = { ...show, lastRun: now, lastResult: finalStatus, lastDetails, noUpdateStreak };
     if (!dryRun) {
       store.saveShow(updated);
+      const durationMs = Date.now() - startedAt;
+      let bytes = 0;
+      try { if (result.file) bytes = fs.statSync(result.file).size; } catch(_) {}
       store.appendHistory(showId, {
         date: now, result: finalStatus,
         filename: result.filename || null,
-        details: lastDetails
+        details: lastDetails,
+        durationMs: result.action === 'produced' ? durationMs : undefined,
+        bytes: bytes || undefined
       });
+      // A production whose upload, copy or archive failed counts as an error in the statistics
+      const statResult = (lastDetails && Object.values(lastDetails).includes('error')) ? 'error' : finalStatus;
+      stats.add(showId, new Date(now), statResult, bytes, result.action === 'produced' ? durationMs : 0);
     }
     if (mainWindow) mainWindow.webContents.send('show-updated', { id: showId, lastRun: now, lastResult: finalStatus, lastDetails });
 
@@ -302,15 +334,13 @@ async function runShow(showId, force = false, dryRun = false) {
       if (result.action === 'produced' && lastDetails) {
         const hasOpError = Object.values(lastDetails).includes('error');
         if (hasOpError) {
-          emailNotifier.sendAlert(emailCfg, show, 'error', { ops: lastDetails })
-            .catch(e => store.appendLog('_system', `Email alert failed: ${e.message}`));
+          sendAlerts(show, 'error', { ops: lastDetails });
         }
       }
       if (result.action === 'no-update') {
         const threshold = (emailCfg && emailCfg.noUpdateStreakThreshold) || 3;
         if (noUpdateStreak >= threshold && noUpdateStreak % threshold === 0) {
-          emailNotifier.sendAlert(emailCfg, show, 'no-update', { streak: noUpdateStreak })
-            .catch(e => store.appendLog('_system', `Email alert failed: ${e.message}`));
+          sendAlerts(show, 'no-update', { streak: noUpdateStreak });
         }
       }
     }
@@ -324,6 +354,7 @@ async function runShow(showId, force = false, dryRun = false) {
       const updated = { ...show, lastRun: now, lastResult: 'error', lastDetails: null, noUpdateStreak: 0 };
       store.saveShow(updated);
       store.appendHistory(showId, { date: now, result: 'error', error: e.message });
+      stats.add(showId, new Date(now), 'error', 0, 0);
     }
     if (mainWindow) mainWindow.webContents.send('show-updated', { id: showId, lastRun: now, lastResult: 'error', lastDetails: null });
 
@@ -338,11 +369,18 @@ async function runShow(showId, force = false, dryRun = false) {
 
     // Email alert on critical error
     if (!dryRun) {
-      const emailCfg = store.getSettings().email;
-      emailNotifier.sendAlert(emailCfg, show, 'error', { message: e.message })
-        .catch(err => store.appendLog('_system', `Email alert failed: ${err.message}`));
+      sendAlerts(show, 'error', { message: e.message });
     }
   }
+}
+
+// Email and Telegram alerts (each channel has its own on/off settings)
+function sendAlerts(show, type, details) {
+  const s = store.getSettings();
+  emailNotifier.sendAlert(s.email, show, type, details)
+    .catch(e => store.appendLog('_system', `Email alert failed: ${e.message}`));
+  telegram.sendAlert(s.telegram, show, type, details)
+    .catch(e => store.appendLog('_system', `Telegram alert failed: ${e.message}`));
 }
 
 // ── Schedule date range check ─────────────────────────────────────────────────
@@ -433,13 +471,7 @@ ipcMain.handle('save-settings',  (_, s) => {
   store.saveSettings(s);
   _loadMainLocale();
   updateTrayMenu();
-  // Sync Windows autostart registry
-  try {
-    app.setLoginItemSettings({
-      openAtLogin: !!s.autostart,
-      args: (s.autostart && s.startHidden) ? ['--hidden'] : []
-    });
-  } catch(e) {}
+  applyLoginItem(s);
   return true;
 });
 
@@ -593,6 +625,36 @@ ipcMain.handle('ftp-browse', async (_, { host, port, user, password, secure, pat
 });
 
 ipcMain.handle('test-email', (_, cfg) => emailNotifier.testConnection(cfg));
+ipcMain.handle('test-telegram', (_, cfg) => telegram.testConnection(cfg));
+
+// ── Dashboard data ────────────────────────────────────────────────────────────
+
+// Next runs of all enabled scheduled shows, soonest first
+ipcMain.handle('get-queue', (_, days = 7) => {
+  const from = new Date();
+  const to   = new Date(from.getTime() + Math.min(Math.max(days, 1), 31) * 86400000);
+  const out  = [];
+  for (const show of store.getShows()) {
+    for (const d of scheduler.upcomingRuns(show, from, to)) {
+      out.push({ showId: show.id, name: show.name, category: show.category || '', time: d.getTime() });
+    }
+  }
+  return out.sort((a, b) => a.time - b.time).slice(0, 500);
+});
+
+ipcMain.handle('get-stats', () => stats.all());
+
+// Latest runs of all shows, newest first
+ipcMain.handle('get-activity', (_, limit = 50) => {
+  const all = [];
+  for (const show of store.getShows()) {
+    for (const h of store.readHistory(show.id, 30)) all.push({ ...h, showId: show.id, name: show.name });
+  }
+  return all.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, limit);
+});
+
+ipcMain.handle('get-running', () => [..._runStatus.entries()].filter(([, st]) => st === 'running').map(([id]) => id));
+ipcMain.handle('get-platform', () => ({ platform: process.platform, dataDir: store.getDataDir() }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
@@ -696,7 +758,7 @@ function runFfmpegInfo(bin, args) {
 }
 
 ipcMain.handle('check-ffmpeg', async (_, ffmpegPath) => {
-  const bin = (ffmpegPath || store.getSettings().ffmpegPath || 'ffmpeg').trim() || 'ffmpeg';
+  const bin = resolveFfmpeg(ffmpegPath || store.getSettings().ffmpegPath);
   const ver = await runFfmpegInfo(bin, ['-version']);
   if (ver.err) return { ok: false, path: bin, error: ver.err.code === 'ENOENT' ? 'not-found' : ver.err.message };
   const m   = /ffmpeg version (\S+)/.exec(ver.stdout);
@@ -748,22 +810,20 @@ ipcMain.handle('browse-file', async (_, filters) => {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
-  // Remove default Electron menu (File/Edit/View/Help) — we use custom titlebar
-  Menu.setApplicationMenu(null);
+  // No menu bar on Windows/Linux. macOS needs an app menu for Cmd+Q and the edit shortcuts (Cmd+C/V/X/A).
+  Menu.setApplicationMenu(process.platform === 'darwin'
+    ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }])
+    : null);
+  if (process.platform === 'win32') app.setAppUserModelId('com.onairgarage.flowcast');
 
   // Load store here (inside whenReady) so app.getPath('userData') is guaranteed ready.
   // This fixes "first install doesn't work, second does" on some Windows configurations.
   store.load();
+  stats.load(store.getDataDir(), store.getHistoryDir());
   _loadMainLocale();
 
   // Sync autostart setting on startup
-  try {
-    const s = store.getSettings();
-    app.setLoginItemSettings({
-      openAtLogin: !!s.autostart,
-      args: (s.autostart && s.startHidden) ? ['--hidden'] : []
-    });
-  } catch(e) {}
+  applyLoginItem(store.getSettings());
 
   createWindow();
   createTray();

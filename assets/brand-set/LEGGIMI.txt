@@ -1,0 +1,17 @@
+FlowCast — set completo
+
+La F iniziale è il simbolo originale allegato, seguito da lowCast.
+flowcast-logo-dark: testo bianco, sfondo trasparente, per tema scuro.
+flowcast-logo-light: testo nero, sfondo trasparente, per tema chiaro.
+Loghi in risoluzione master, 1024 e 512 px di larghezza.
+
+app-dark: simbolo originale su squircle blu notte.
+app-light: simbolo originale su squircle chiaro.
+app-blue: simbolo bianco su squircle blu.
+symbol-color: simbolo originale senza sfondo.
+tray-white / tray-black: simbolo monocromatico trasparente.
+
+PNG in 12 dimensioni da 16 a 1024 px; ICO multirisoluzione e ICNS per le icone app.
+favicon.ico: icona blu; favicon-white e favicon-black per superfici rispettivamente scure e chiare.
+
+File raster, non SVG vettoriali. Lettering creato con ImageGen e rifinito via codice; simbolo ricavato dal file originale, preservando forme e sfumature.

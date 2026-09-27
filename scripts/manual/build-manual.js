@@ -22,13 +22,35 @@ const TIMEOUT_MS = 5 * 60 * 1000;
 const tmpData = fs.mkdtempSync(path.join(os.tmpdir(), 'flowcast-manual-'));
 app.setPath('userData', tmpData);
 
+const CATEGORIES = { 'demo-morning': 'News', 'demo-city': 'News', 'demo-sport': 'Sport', 'demo-jazz': 'Music', 'demo-summer': 'Music', 'demo-tech': 'Talk' };
+
+// Fictional run history of the last 35 days, so the dashboard has statistics to show
+function demoHistory(shows) {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  fs.mkdirSync(path.join(tmpData, 'history'), { recursive: true });
+  for (const s of shows) {
+    const [hh, mm] = s.schedule.time.split(':').map(Number);
+    const list = [];
+    for (let d = 1; d <= 35; d++) {
+      if (rnd() < 0.3) continue;
+      const date = new Date(); date.setDate(date.getDate() - d); date.setHours(hh, mm + 1, 0, 0);
+      const r = rnd(), result = r < 0.04 ? 'error' : r < 0.12 ? 'no-update' : 'ok';
+      list.push({ date: date.toISOString(), result, filename: result === 'ok' ? `${s.slug}.mp3` : null,
+        durationMs: result === 'ok' ? 20000 + Math.round(rnd() * 40000) : undefined,
+        bytes: result === 'ok' ? 20e6 + Math.round(rnd() * 60e6) : undefined, error: result === 'error' ? 'FTP: connection timed out' : undefined });
+    }
+    fs.writeFileSync(path.join(tmpData, 'history', s.id + '.json'), JSON.stringify(list));
+  }
+}
+
 function demoData() {
   const now   = new Date().toISOString();
   const ftp   = { enabled: true, bookmarkId: 'bm-demo', host: 'ftp.example.com', port: 21, user: 'podcast',
                   password: 'demo-password', secure: true };
   const ok    = { ftp: 'ok', archive: 'ok', local: 'skipped' };
   const show  = (id, name, slug, time, freq, days, parts, extra = {}) => ({
-    id, name, slug, enabled: true, mode: 'scheduled', outputFormat: 'mp3', bitrate: '192k',
+    id, name, slug, category: CATEGORIES[id] || '', enabled: true, mode: 'scheduled', outputFormat: 'mp3', bitrate: '192k',
     wavBase: 'C:\\Radio\\Exports',
     wavFiles: parts.map((p, i) => ({ path: p, check: !/jingle|intro/i.test(p), note: i === 0 && /jingle|intro/i.test(p) ? 'Intro' : `Part ${i + 1}` })),
     archiveEnabled: true, archivePath: slug.toUpperCase().replace(/-/g, ' '), workDirOverride: '', verificaFile: '',
@@ -66,19 +88,23 @@ function demoData() {
     ]
   };
 }
-fs.writeFileSync(path.join(tmpData, 'data.json'), JSON.stringify(demoData(), null, 2));
+const DEMO = demoData();
+fs.writeFileSync(path.join(tmpData, 'data.json'), JSON.stringify(DEMO, null, 2));
+demoHistory(DEMO.shows);
 
 // ── Screenshots ───────────────────────────────────────────────────────────────
 
 const SHOTS = [
   ['dashboard',        "document.getElementById('nav-dashboard').click()"],
-  ['show-general',     "openShow('demo-morning').then(() => switchTab('generale'))"],
+  ['schedule',         "document.getElementById('nav-schedule').click(); document.querySelector('[data-pal=shows]').click()"],
+  ['timeline',         "document.querySelector('[data-pal=timeline]').click(); document.querySelector('#timeline-range [data-range=\"7\"]').click()"],
+  ['show-general',     "await openShow('demo-morning'); switchTab('generale')"],
   ['show-sources',     "switchTab('sorgenti')"],
   ['show-schedule',    "switchTab('schedule')"],
   ['show-output',      "switchTab('output')"],
   ['settings-general', "openSettings('general')"],
   ['settings-email',   "switchSettingsSection('email')"],
-  ['settings-info',    "switchSettingsSection('info')"],
+  ['settings-info',    "switchSettingsSection('info'); document.querySelectorAll('.data-path').forEach(el => { el.textContent = '%APPDATA%/flowcast/' + el.dataset.sub; })"],
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -102,11 +128,20 @@ async function reloadIn(win, lang) {
 async function captureAll(win) {
   const shots = {};
   for (const [name, action] of SHOTS) {
-    await win.webContents.executeJavaScript(`Promise.resolve(${action}).then(() => {
+    await win.webContents.executeJavaScript(`(async () => { ${action}; })().then(() => {
       document.querySelectorAll('#content, .set-body, .set-content').forEach(el => { el.scrollTop = 0; });
     })`);
-    await sleep(700);
-    const img = (await win.webContents.capturePage()).resize({ width: 1400, quality: 'best' });
+    await sleep(1200);
+    // Wait until the new state is actually painted (background windows paint lazily)
+    await win.webContents.executeJavaScript('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))');
+    win.webContents.invalidate();
+    await sleep(250);
+    // capturePage can fail transiently (GPU compositor): retry a few times
+    let raw = null;
+    for (let i = 0; i < 4 && !raw; i++) {
+      try { raw = await win.webContents.capturePage(); } catch(e) { if (i === 3) throw e; await sleep(800); }
+    }
+    const img = raw.resize({ width: 1400, quality: 'best' });
     shots[name] = 'data:image/png;base64,' + img.toPNG().toString('base64');
   }
   return shots;
@@ -117,7 +152,7 @@ async function captureAll(win) {
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function logoDataUrl() {
-  const img = nativeImage.createFromPath(path.join(ROOT, 'assets', 'flowcast_scritta.png')).resize({ width: 420, quality: 'best' });
+  const img = nativeImage.createFromPath(path.join(ROOT, 'assets', 'logo-light.png'));
   return 'data:image/png;base64,' + img.toPNG().toString('base64');
 }
 
@@ -142,7 +177,7 @@ function buildHtml(c, lang, shots) {
          line-height: 1.5; color: #1d2330; margin: 0; }
   .cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; align-items: center;
            text-align: center; page-break-after: always; }
-  .cover img { width: 52mm; margin-bottom: 12mm; }
+  .cover img { width: 95mm; margin-bottom: 14mm; }
   .cover h1 { font-size: 30pt; margin: 0 0 4mm; color: #0b1a3a; }
   .cover .meta { color: #5a6475; font-size: 11pt; }
   .cover .intro { max-width: 140mm; margin-top: 14mm; color: #333; font-size: 10.5pt; }
@@ -174,7 +209,7 @@ function buildHtml(c, lang, shots) {
 <div class="cover">
   <img src="${logoDataUrl()}" alt="FlowCast">
   <h1>${esc(c.title)}</h1>
-  <div class="meta">${esc(c.version)} ${VERSION} · ${esc(date)} · Windows 10/11 x64</div>
+  <div class="meta">${esc(c.version)} ${VERSION} · ${esc(date)} · Windows · macOS · Linux</div>
   <div class="intro">${esc(c.intro.replace(/\s*\n\s*/g, ' '))}</div>
   <div class="by">Graziano Melzi · OnAir Garage — onairgarage.com</div>
 </div>
@@ -208,6 +243,8 @@ async function printPdf(html, file, c) {
 async function main() {
   const win = await waitForMainWindow();
   win.setSize(1200, 760);
+  win.webContents.setBackgroundThrottling(false);
+  win.show();
   await win.webContents.insertCSS('#ffmpeg-warning, #update-banner { display: none !important; }');
   fs.mkdirSync(OUT_DIR, { recursive: true });
   for (const lang of LANGS) {

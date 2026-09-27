@@ -8,66 +8,92 @@
 </head>
 <body>
 
-<!-- Titlebar -->
-<div id="titlebar">
-  <button class="tb-btn" id="btn-sidebar-toggle" data-i18n-title="tb.sidebar.title" style="font-size:15px;padding:4px 8px;margin-right:4px">☰</button>
-  <span class="tb-title"><img src="../assets/flowcast_scritta.png" alt="FlowCast" style="height:22px;vertical-align:middle;margin-right:4px"></span>
-  <span class="tb-status" id="tb-status"></span>
-  <span style="flex:1"></span>
-  <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="tb.theme.title" style="font-size:14px;padding:4px 7px">☀️</button>
-  <button class="tb-btn" id="btn-help"  data-i18n-title="tb.help.title">❓</button>
-  <button class="tb-btn" id="btn-about" data-i18n-title="tb.about.title">ℹ</button>
-</div>
-
-<!-- Update notice (shown in every view) -->
-<div id="update-banner" class="update-banner hidden">
-  <span id="update-banner-text"></span>
-  <span class="update-progress hidden" id="update-progress"><span id="update-progress-bar"></span></span>
-  <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download and install</button>
-  <button class="btn btn-sm hidden" id="btn-update-install"></button>
-  <button class="btn btn-muted btn-sm hidden" id="btn-update-page" data-i18n="upd.page">Open download page</button>
-  <button class="btn btn-muted btn-sm" id="btn-update-dismiss" data-i18n="upd.dismiss">Ignore this version</button>
-</div>
-
-<!-- App shell -->
 <div id="app">
 
   <!-- Sidebar -->
-  <div id="sidebar">
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <img id="brand-logo" src="../assets/logo-dark.png" alt="FlowCast">
+    </div>
     <div class="sidebar-nav">
-      <div class="nav-item active" id="nav-dashboard" data-view="dashboard">
+      <button class="nav-item active" id="nav-dashboard" data-view="dashboard">
         <span class="nav-icon">📊</span> <span data-i18n="nav.dashboard">Dashboard</span>
-      </div>
+      </button>
+      <button class="nav-item nav-item-alt" id="nav-schedule" data-view="palinsesto">
+        <span class="nav-icon">📅</span> <span data-i18n="nav.schedule">Schedule</span>
+      </button>
     </div>
-    <div class="sidebar-header">
-      <h2 data-i18n="sidebar.shows">Shows</h2>
-      <button class="btn-icon" id="btn-new-show" title="+">+</button>
+    <div class="queue-panel">
+      <h4 data-i18n="queue.title">Next productions</h4>
+      <div id="queue-list" class="queue-list"></div>
     </div>
+    <div class="sidebar-actions">
+      <button class="btn btn-primary btn-sm" id="btn-new-show" data-i18n="sidebar.new_show">+ Show</button>
+    </div>
+    <div class="sidebar-list-header"><span data-i18n="sidebar.shows">Shows</span><span id="category-filter"></span></div>
     <div id="shows-list"></div>
     <div class="sidebar-footer">
-      <button class="btn btn-muted btn-sm" id="btn-open-settings" style="flex:1" data-i18n="sidebar.settings">⚙ Settings</button>
+      <button class="btn btn-ghost btn-block" id="btn-open-settings" data-i18n="sidebar.settings">⚙ Settings</button>
+      <button class="btn btn-ghost btn-block" id="btn-help" data-i18n="sidebar.help">ℹ Info &amp; Guide</button>
     </div>
-  </div>
+  </aside>
 
   <!-- Main -->
   <div id="main">
+    <div class="topbar">
+      <div class="clock-widget">
+        <div id="clock-time" class="clock-time">--:--:--</div>
+        <div id="clock-date" class="clock-date"></div>
+      </div>
+      <div class="next-widget" id="next-widget">
+        <div class="widget-label" data-i18n="next.label">Next production</div>
+        <div id="next-widget-name" class="next-widget-name"></div>
+        <div id="next-widget-countdown" class="next-widget-countdown"></div>
+      </div>
+      <div class="active-widget hidden" id="active-widget">
+        <div class="widget-label" data-i18n="active.label">In production</div>
+        <div id="active-widget-body" class="active-widget-body"></div>
+      </div>
+      <div class="topbar-tools">
+        <button class="tb-btn" id="btn-theme-toggle" data-i18n-title="tb.theme.title">☀️</button>
+        <button class="tb-btn" id="btn-about" data-i18n-title="tb.about.title">ℹ</button>
+        <button class="tb-btn" id="btn-sidebar-toggle" data-i18n-title="tb.sidebar.title">☰</button>
+      </div>
+    </div>
+
+    <!-- Update notice (shown in every view) -->
+    <div id="update-banner" class="update-banner hidden">
+      <span id="update-banner-text"></span>
+      <span class="update-progress hidden" id="update-progress"><span id="update-progress-bar"></span></span>
+      <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download and install</button>
+      <button class="btn btn-sm hidden" id="btn-update-install"></button>
+      <button class="btn btn-muted btn-sm hidden" id="btn-update-page" data-i18n="upd.page">Open download page</button>
+      <button class="btn btn-muted btn-sm" id="btn-update-dismiss" data-i18n="upd.dismiss">Ignore this version</button>
+    </div>
+    <div id="ffmpeg-warning" class="ffmpeg-warning hidden">
+      <span id="ffmpeg-warning-text"></span>
+      <a href="https://github.com/djgragra/flowcast#installing-ffmpeg" data-i18n="ffmpeg.howto">How to install FFmpeg</a>
+      <button class="btn btn-muted btn-sm" id="btn-ffmpeg-settings" data-i18n="ffmpeg.settings">Set path</button>
+    </div>
+
     <div id="content">
 
-      <!-- ── DASHBOARD ── -->
+      <!-- ── DASHBOARD (statistics) ── -->
       <div id="view-dashboard" class="view active">
-        <div class="dash-hero">
-          <h1 class="dash-title" data-i18n="dash.title">Dashboard</h1>
-          <div class="dash-info-bar">
-            <span id="dash-clock" class="dash-clock"></span>
-            <span class="dash-info-sep">·</span>
-            <span id="dash-next-task" class="dash-next-task"></span>
+        <div class="page-title"><span>📊</span><h1 data-i18n="dash.title">Dashboard</h1></div>
+        <div id="dashboard-body"></div>
+      </div>
+
+      <!-- ── SCHEDULE (shows and timeline) ── -->
+      <div id="view-palinsesto" class="view">
+        <div class="page-title">
+          <span>📅</span><h1 data-i18n="nav.schedule">Schedule</h1>
+          <div class="seg-control" id="pal-mode">
+            <button class="seg-btn on" data-pal="shows" data-i18n="pal.shows">Shows</button>
+            <button class="seg-btn" data-pal="timeline" data-i18n="pal.timeline">Timeline</button>
           </div>
         </div>
-        <div id="ffmpeg-warning" class="ffmpeg-warning hidden">
-          <span id="ffmpeg-warning-text"></span>
-          <a href="https://github.com/djgragra/flowcast#installing-ffmpeg" data-i18n="ffmpeg.howto">How to install FFmpeg</a>
-          <button class="btn btn-muted btn-sm" id="btn-ffmpeg-settings" data-i18n="ffmpeg.settings">Set path</button>
-        </div>
+        <div id="pal-shows">
         <div class="dash-controls">
           <div class="dash-search-row">
             <input type="text" id="dash-search" class="dash-search-input" data-i18n-placeholder="dash.search">
@@ -92,7 +118,15 @@
             </div>
           </div>
         </div>
-        <div class="shows-grid" id="dashboard-grid"></div>
+          <div class="shows-grid" id="dashboard-grid"></div>
+        </div>
+        <div id="pal-timeline" class="hidden">
+          <div class="seg-control seg-small" id="timeline-range">
+            <button class="seg-btn on" data-range="1" data-i18n="pal.24h">Next 24 hours</button>
+            <button class="seg-btn" data-range="7" data-i18n="pal.7d">Next 7 days</button>
+          </div>
+          <div id="timeline-body"></div>
+        </div>
       </div>
 
       <!-- ── SHOW DETAIL ── -->
@@ -124,6 +158,12 @@
             <div class="field">
               <label data-i18n="gen.name.label">Program name</label>
               <input type="text" id="f-name" data-i18n-placeholder="gen.name.ph">
+            </div>
+            <div class="field">
+              <label data-i18n="gen.category.label">Category</label>
+              <input type="text" id="f-category" list="category-options" data-i18n-placeholder="gen.category.ph">
+              <datalist id="category-options"></datalist>
+              <div class="note" data-i18n="gen.category.note">Groups shows in the sidebar and in the statistics (e.g. News, Music, Weekend).</div>
             </div>
             <div class="field">
               <label data-i18n="gen.slug.label">Slug — output filename</label>
@@ -416,6 +456,18 @@
       </div>
 
     </div><!-- #content -->
+
+    <!-- Console: live output of all productions -->
+    <section class="console collapsed" id="console">
+      <div class="console-header" id="console-header">
+        <span data-i18n="console.title">Console</span>
+        <span class="console-count" id="console-count"></span>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost btn-xs" id="btn-clear-console" data-i18n="console.clear">Clear</button>
+        <button class="btn btn-ghost btn-xs" id="btn-toggle-console">▸</button>
+      </div>
+      <div id="console-body" class="console-body"></div>
+    </section>
   </div><!-- #main -->
 </div><!-- #app -->
 
@@ -483,7 +535,7 @@
         <div class="form-section">
           <h3 data-i18n="set.startup.title">Startup</h3>
           <div class="cb-row" style="margin-bottom:10px">
-            <label class="toggle"><input type="checkbox" id="s-autostart"><span class="toggle-slider"></span></label>
+            <label class="toggle" id="autostart-toggle"><input type="checkbox" id="s-autostart"><span class="toggle-slider"></span></label>
             <label for="s-autostart" data-i18n="set.autostart.label">Start with Windows</label>
           </div>
           <div class="cb-row">
@@ -575,6 +627,36 @@
               <span id="email-test-result" style="font-size:12px;color:var(--muted)"></span>
             </div>
           </div>
+          <div class="form-section">
+            <h3 data-i18n="set.tg.title">Telegram alerts</h3>
+            <div class="cb-row" style="margin-bottom:12px">
+              <label class="toggle"><input type="checkbox" id="s-tg-enabled"><span class="toggle-slider"></span></label>
+              <label for="s-tg-enabled" data-i18n="set.tg.enabled">Send alerts to Telegram</label>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label data-i18n="set.tg.token">Bot token</label>
+                <input type="password" id="s-tg-token" placeholder="123456789:AA…">
+              </div>
+              <div class="field">
+                <label data-i18n="set.tg.chat">Chat ID</label>
+                <input type="text" id="s-tg-chat" placeholder="-1001234567890">
+              </div>
+            </div>
+            <div class="cb-row" style="margin-bottom:6px">
+              <input type="checkbox" id="s-tg-on-error">
+              <label for="s-tg-on-error" data-i18n="set.tg.on_error">Alert on error</label>
+            </div>
+            <div class="cb-row" style="margin-bottom:12px">
+              <input type="checkbox" id="s-tg-on-noupdate">
+              <label for="s-tg-on-noupdate" data-i18n="set.tg.on_noupdate">Alert if the file is not updated</label>
+            </div>
+            <div class="note" style="margin-bottom:10px" data-i18n-html="set.tg.note"></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-muted" id="btn-test-telegram" data-i18n="set.tg.test">✈ Test Telegram</button>
+              <span id="telegram-test-result" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -623,9 +705,10 @@
         <div class="form-section" style="margin-bottom:0">
           <h3 data-i18n="set.info.title">Info</h3>
           <div class="note" style="line-height:2">
-            <span data-i18n="set.info.work">Work files: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\work\</code><br>
-            <span data-i18n="set.info.logs">Logs: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\logs\</code><br>
-            <span data-i18n="set.info.hist">History: </span><code style="color:var(--accent)">%APPDATA%\FlowCast\history\</code>
+            <span data-i18n="set.info.data">Data: </span><code class="data-path" data-sub="data.json" style="color:var(--accent)"></code><br>
+            <span data-i18n="set.info.work">Work files: </span><code class="data-path" data-sub="work" style="color:var(--accent)"></code><br>
+            <span data-i18n="set.info.logs">Logs: </span><code class="data-path" data-sub="logs" style="color:var(--accent)"></code><br>
+            <span data-i18n="set.info.hist">History: </span><code class="data-path" data-sub="history" style="color:var(--accent)"></code>
           </div>
         </div>
       </div>
@@ -638,7 +721,7 @@
 <div class="modal-overlay hidden" id="modal-about">
   <div class="modal about-modal">
     <div class="about-header">
-      <div class="about-icon"><img src="../assets/flowcast_scritta.png" alt="FlowCast" style="height:56px"></div>
+      <div class="about-icon"><img class="brand-logo-img" src="../assets/logo-dark.png" alt="FlowCast" style="height:44px"></div>
       <div>
         <div class="about-version" id="about-version" style="margin-top:8px"></div>
       </div>
@@ -673,6 +756,8 @@
     </div>
     <div class="help-content" id="help-content">
       <div class="help-section"><h3 data-i18n="help.s1.title"></h3><div data-i18n-html="help.s1.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s16.title"></h3><div data-i18n-html="help.s16.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s17.title"></h3><div data-i18n-html="help.s17.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s2.title"></h3><div data-i18n-html="help.s2.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s3.title"></h3><div data-i18n-html="help.s3.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s4.title"></h3><div data-i18n-html="help.s4.body"></div></div>
@@ -718,6 +803,7 @@
 </div>
 
 <script src="i18n.js"></script>
+<script src="dashboard.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>

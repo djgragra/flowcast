@@ -25,27 +25,30 @@ async function init() {
   applyTheme(_settings.theme || 'dark');
   applySortUI();
   renderSidebar();
-  renderDashboard();
+  renderShowsGrid();
   showView('dashboard');
 
-  // Clock: tick every second; next-task refresh every 60s
-  updateDashboardClock();
-  updateNextTask();
-  _clockInterval = setInterval(updateDashboardClock, 1000);
-  setInterval(updateNextTask, 60000);
+  // Top bar: clock and countdown tick every second; the queue refreshes every minute
+  tickTopbar();
+  setInterval(tickTopbar, 1000);
+  refreshQueue();
+  setInterval(refreshQueue, 60000);
+  refreshRunning();
+  initConsole();
 
   checkFfmpegWarning();
   refreshAboutVersion();
   api.onUpdateAvailable(showUpdateBanner);
   api.getUpdateInfo().then(info => { if (info) showUpdateBanner(info); });
 
-  api.onShowStatus(({ id, status }) => updateShowStatus(id, status));
-  api.onLogLine(({ id, line }) => { if (_activeShowId === id) appendLogLine(line); });
+  api.onShowStatus(({ id, status }) => { updateShowStatus(id, status); refreshRunning(); });
+  api.onLogLine(({ id, line }) => { if (_activeShowId === id) appendLogLine(line); consoleAppend(id, line); });
   api.onShowTriggered(({ id }) => { if (_activeShowId === id) refreshLogOutput(id); });
   api.onShowUpdated(({ id, lastRun, lastResult, lastDetails }) => {
     const show = _shows.find(s => s.id === id);
     if (show) { show.lastRun = lastRun; show.lastResult = lastResult; if (lastDetails !== undefined) show.lastDetails = lastDetails; }
     updateDashboardCard(id);
+    scheduleDashboardRefresh();
   });
 }
 
@@ -58,6 +61,10 @@ function showView(name) {
   document.querySelectorAll('.nav-item').forEach(n => {
     n.classList.toggle('active', n.dataset.view === name);
   });
+  if (name !== 'show') { _activeShowId = null; renderSidebar(); }
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'palinsesto') renderPalinsesto();
+  document.getElementById('content').scrollTop = 0;
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -65,45 +72,68 @@ function showView(name) {
 function renderSidebar() {
   const list = document.getElementById('shows-list');
   list.innerHTML = '';
+  renderCategoryFilter();
 
   if (_shows.length === 0) {
-    list.innerHTML = `<div style="padding:16px 10px;font-size:12px;color:var(--muted)">${t('sidebar.no_shows')}</div>`;
+    list.innerHTML = `<div class="sidebar-empty">${t('sidebar.no_shows')}</div>`;
     return;
   }
 
-  getSortedShows().forEach(show => {
-    const item = document.createElement('div');
-    item.className = 'show-item'
-      + (show.id === _activeShowId ? ' active' : '')
-      + (!show.enabled ? ' disabled-show' : '');
-    item.dataset.id = show.id;
+  const visible = getSortedShows().filter(s => !_categoryFilter || categoryOf(s) === _categoryFilter);
+  const groups  = groupByCategory(visible);
+  const single  = groups.length === 1 && !groups[0].name;
 
-    let subLine = '';
-    if (isExpired(show))             subLine = t('card.expired');
-    else if (!show.enabled)          subLine = t('show.disabled');
-    else if (show.mode === 'manual') subLine = t('sidebar.manual');
-    else if (show.schedule && show.schedule.time)
-      subLine = `🕐 ${show.schedule.time} · ${freqLabel(show.schedule.freq)}`;
-    else subLine = t('sidebar.no_sched');
-
-    item.innerHTML = `
-      <span class="si-dot ${show.lastResult || 'idle'}"></span>
-      <span class="si-info">
-        <span class="si-name">${esc(show.name || t('show.new'))}</span>
-        <span class="si-next">${esc(subLine)}</span>
-      </span>`;
-
-    item.addEventListener('click', () => openShow(show.id));
-    list.appendChild(item);
+  groups.forEach(g => {
+    const wrap = document.createElement('div');
+    wrap.className = 'category-group';
+    if (!single) {
+      const color = categoryColor(g.name);
+      wrap.innerHTML = `<div class="category-group-title" style="color:${color}">${esc(g.name || t('cat.none'))}
+        <span class="category-count" style="background:${color}22">${g.items.length}</span></div>`;
+    }
+    g.items.forEach(show => wrap.appendChild(sidebarItem(show)));
+    list.appendChild(wrap);
   });
+}
+
+function sidebarItem(show) {
+  const item = document.createElement('div');
+  const status = show.lastResult || 'idle';
+  item.className = 'show-item status-' + (show.enabled === false ? 'off' : status)
+    + (show.id === _activeShowId ? ' active' : '');
+  item.dataset.id = show.id;
+
+  let subLine;
+  const next = nextRunOf(show.id);
+  if (isExpired(show))             subLine = t('card.expired');
+  else if (!show.enabled)          subLine = t('show.disabled');
+  else if (show.mode === 'manual') subLine = t('sidebar.manual');
+  else if (next)                   subLine = t('sidebar.next', { when: fmtShort(next) });
+  else if (show.schedule && show.schedule.time) subLine = `${show.schedule.time} · ${freqLabel(show.schedule.freq)}`;
+  else subLine = t('sidebar.no_sched');
+
+  item.innerHTML = `
+    <div class="si-top">
+      <span class="si-name">${categoryDot(categoryOf(show))}<span class="si-icon">🎙</span>${esc(show.name || t('show.new'))}</span>
+      ${sidebarBadge(show)}
+    </div>
+    <div class="si-next">${esc(subLine)}</div>`;
+  item.addEventListener('click', () => openShow(show.id));
+  return item;
+}
+
+function sidebarBadge(show) {
+  if (show.enabled === false) return `<span class="badge badge-off">${t('badge.off')}</span>`;
+  const st = show.lastResult || 'idle';
+  return `<span class="badge badge-${st}">${statusLabel(st)}</span>`;
 }
 
 function updateShowStatus(id, status) {
   const show = _shows.find(s => s.id === id);
   if (show) show.lastResult = status;
 
-  const dot = document.querySelector(`.show-item[data-id="${id}"] .si-dot`);
-  if (dot) dot.className = 'si-dot ' + status;
+  const item = document.querySelector(`.show-item[data-id="${id}"]`);
+  if (item && show) item.replaceWith(sidebarItem(show));
 
   if (_activeShowId === id) renderShowBadge(status);
 
@@ -114,8 +144,6 @@ function updateShowStatus(id, status) {
     if (sc) sc.innerHTML = badgeHtml(status);
   }
 
-  document.getElementById('tb-status').textContent =
-    status === 'running' && show ? `▶ ${show.name}…` : '';
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
@@ -124,6 +152,10 @@ function applyTheme(theme) {
   document.body.classList.toggle('light-theme', theme === 'light');
   const btn = document.getElementById('btn-theme-toggle');
   if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+  // Wordmark with white text on the dark theme, black text on the light theme
+  document.querySelectorAll('#brand-logo, .brand-logo-img').forEach(img => {
+    img.src = `../assets/logo-${theme === 'light' ? 'light' : 'dark'}.png`;
+  });
 }
 
 // Returns a numeric sort key for schedule-based ordering.
@@ -208,34 +240,6 @@ function applyFilterUI() {
   }
 }
 
-// ── Dashboard clock & next task ──────────────────────────────────────────────
-
-let _clockInterval = null;
-
-function updateDashboardClock() {
-  const el = document.getElementById('dash-clock');
-  if (!el) return;
-  const now = new Date();
-  const loc = i18n.dateLocale();
-  const date = now.toLocaleDateString(loc, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const time = now.toLocaleTimeString(loc, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  const cap  = date.charAt(0).toUpperCase() + date.slice(1);
-  el.innerHTML = `${cap} <span class="dash-clock-time">${time}</span>`;
-}
-
-async function updateNextTask() {
-  const el = document.getElementById('dash-next-task');
-  if (!el) return;
-  try {
-    const task = await api.getNextTask();
-    if (task) {
-      el.innerHTML = t('dash.next_task', { name: esc(task.name), time: task.time });
-    } else {
-      el.textContent = t('dash.no_task');
-    }
-  } catch(e) { el.textContent = ''; }
-}
-
 function applySortUI() {
   document.querySelectorAll('.sort-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sort === _sortField);
@@ -254,7 +258,7 @@ function applySortUI() {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-function renderDashboard() {
+function renderShowsGrid() {
   const grid = document.getElementById('dashboard-grid');
   grid.innerHTML = '';
 
@@ -349,9 +353,9 @@ function renderDashboardCard(show) {
     ? (show.ftp.name ? show.ftp.name + ' → ' : '') + (show.ftp.remotePath || '/')
     : '';
   const _archSub    = show.archivePath || '';
-  const _archAbs    = /^[A-Za-z]:[\\/]/.test(_archSub) || /^\\\\/.test(_archSub);
+  const _archAbs    = isAbsPath(_archSub);
   const _archiveTip = _archAbs ? _archSub
-    : (_settings.baseArchive && _archSub ? `${_settings.baseArchive}\\${_archSub}` : _archSub);
+    : (_settings.baseArchive && _archSub ? `${_settings.baseArchive}${pathSep()}${_archSub}` : _archSub);
 
   const chips = [];
   if (show.outputFolder)                              chips.push(`<span class="chip chip-local" title="${esc(_localTip)}">📁 ${t('chip.local') || 'Local'}${chipDot(d && d.local)}</span>`);
@@ -451,6 +455,8 @@ function fillShowForm(show) {
   renderEnabledBtn(show.enabled !== false);
 
   document.getElementById('f-name').value          = show.name         || '';
+  document.getElementById('f-category').value      = show.category     || '';
+  document.getElementById('category-options').innerHTML = allCategories().map(c => `<option value="${esc(c)}">`).join('');
   document.getElementById('f-slug').value          = show.slug         || '';
   document.getElementById('f-output-format').value = show.outputFormat || 'mp3';
   document.getElementById('f-bitrate').value       = show.bitrate      || '192k';
@@ -586,8 +592,8 @@ function updateArchivePreview() {
   if (prev) {
     if (!sub) { prev.textContent = ''; return; }
     // If absolute path, show as-is; otherwise combine
-    const isAbsolute = /^[A-Za-z]:[\\/]/.test(sub) || /^\\\\/.test(sub);
-    prev.textContent = isAbsolute ? `→ ${sub}` : (base ? `→ ${base}\\${sub}` : `→ ${sub}`);
+    const isAbsolute = isAbsPath(sub);
+    prev.textContent = isAbsolute ? `→ ${sub}` : (base ? `→ ${base}${pathSep()}${sub}` : `→ ${sub}`);
   }
 }
 
@@ -595,6 +601,7 @@ function collectShowData() {
   const show = { ...(_shows.find(s => s.id === _activeShowId) || {}), id: _activeShowId };
 
   show.name         = document.getElementById('f-name').value.trim();
+  show.category     = document.getElementById('f-category').value.trim();
   show.slug         = document.getElementById('f-slug').value.trim();
   show.outputFormat = document.getElementById('f-output-format').value;
   show.bitrate      = document.getElementById('f-bitrate').value;
@@ -657,9 +664,9 @@ async function saveShow() {
   setEditMode(false); // back to view mode after save
   document.getElementById('show-title').textContent = show.name;
   renderSidebar();
-  renderDashboard();
+  renderShowsGrid();
   refreshNextRun();
-  updateNextTask();
+  refreshQueue();
 }
 
 async function deleteShow() {
@@ -669,8 +676,8 @@ async function deleteShow() {
   await api.deleteShow(_activeShowId);
   _shows = _shows.filter(s => s.id !== _activeShowId);
   _activeShowId = null; _isNew = false;
-  renderSidebar(); renderDashboard(); showView('dashboard');
-  updateNextTask();
+  renderSidebar(); renderShowsGrid(); showView('dashboard');
+  refreshQueue();
 }
 
 async function duplicateShow() {
@@ -679,7 +686,7 @@ async function duplicateShow() {
   if (!copy) return;
   _shows.unshift(copy);
   renderSidebar();
-  renderDashboard();
+  renderShowsGrid();
   _activeShowId = copy.id;
   _isNew = true; // treat as new so cancel → dashboard
   fillShowForm(copy);
@@ -986,7 +993,7 @@ async function quickToggleEnabled() {
   show.enabled = !show.enabled;
   renderEnabledBtn(show.enabled);
   await api.saveShow(show);
-  renderSidebar(); renderDashboard();
+  renderSidebar(); renderShowsGrid();
 }
 
 // ── WAV list ──────────────────────────────────────────────────────────────────
@@ -1180,6 +1187,13 @@ function openSettings(section) {
   document.getElementById('s-smtp-from').value           = em.from       || '';
   document.getElementById('s-smtp-secure').checked       = !!smtp.secure;
   document.getElementById('s-smtp-selfsigned').checked   = !!smtp.allowSelfSigned;
+  const tg = _settings.telegram || {};
+  document.getElementById('s-tg-enabled').checked    = !!tg.enabled;
+  document.getElementById('s-tg-token').value        = tg.token  || '';
+  document.getElementById('s-tg-chat').value         = tg.chatId || '';
+  document.getElementById('s-tg-on-error').checked   = tg.onError !== false;
+  document.getElementById('s-tg-on-noupdate').checked = !!tg.onNoUpdate;
+  document.getElementById('telegram-test-result').textContent = '';
   const recips = (em.recipients || '').split('\n').filter(Boolean);
   document.getElementById('s-email-recip-1').value = recips[0] || '';
   document.getElementById('s-email-recip-2').value = recips[1] || '';
@@ -1215,6 +1229,7 @@ async function saveSettings() {
     autostart:   document.getElementById('s-autostart').checked,
     startHidden: document.getElementById('s-start-hidden').checked,
     checkUpdates:    document.getElementById('s-check-updates').checked,
+    telegram:        readTelegramForm(),
     updateDismissed: _settings.updateDismissed || '',
     theme:       _settings.theme || 'dark',
     language:    document.getElementById('s-language').value    || 'en',
@@ -1418,7 +1433,7 @@ async function importConfig() {
   }
 
   renderSidebar();
-  renderDashboard();
+  renderShowsGrid();
   if (replace) {
     status.style.color = 'var(--green)';
     status.textContent = t('cfg.imported', { n: showCount });
@@ -1452,7 +1467,27 @@ bindBrowseFolder('btn-browse-archive',  'f-archive');
 bindBrowseFolder('btn-browse-output',   'f-output-folder');
 bindBrowseFolder('btn-browse-s-wav',    's-base-wav');
 bindBrowseFolder('btn-browse-s-archive','s-base-archive');
-bindBrowseFile(  'btn-browse-ffmpeg',   's-ffmpeg', () => [{ name: t('dlg.executables'), extensions: ['exe'] }, { name: t('dlg.all_files'), extensions: ['*'] }]);
+bindBrowseFile(  'btn-browse-ffmpeg',   's-ffmpeg', () => api.platform === 'win32'
+  ? [{ name: t('dlg.executables'), extensions: ['exe'] }, { name: t('dlg.all_files'), extensions: ['*'] }]
+  : [{ name: t('dlg.all_files'), extensions: ['*'] }]);
+
+function pathSep() { return api.platform === 'win32' ? '\\' : '/'; }
+
+// Same rule as the main process: drive letter or UNC share; "/" only on macOS/Linux
+function isAbsPath(p) {
+  return /^[A-Za-z]:[\\/]/.test(p) || /^\\\\/.test(p) || (api.platform !== 'win32' && String(p).startsWith('/'));
+}
+
+// Settings → Info: real data folder of this installation; autostart is not available on Linux
+api.getPlatform().then(({ platform, dataDir }) => {
+  const sep = platform === 'win32' ? '\\' : '/';
+  document.querySelectorAll('.data-path').forEach(el => { el.textContent = dataDir + sep + el.dataset.sub; });
+  if (platform === 'linux') {
+    const row = document.getElementById('autostart-toggle').closest('.cb-row');
+    row.style.display = 'none';
+    document.getElementById('s-start-hidden').closest('.cb-row').style.display = 'none';
+  }
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1484,17 +1519,15 @@ function badgeHtml(status) {
 
 // ── Event listeners ───────────────────────────────────────────────────────────
 
-document.getElementById('nav-dashboard').addEventListener('click', () => {
-  _activeShowId = null;
-  renderSidebar(); renderDashboard(); showView('dashboard');
-});
+document.getElementById('nav-dashboard').addEventListener('click', () => showView('dashboard'));
+document.getElementById('nav-schedule').addEventListener('click', () => { renderShowsGrid(); showView('palinsesto'); });
 
 document.getElementById('btn-new-show').addEventListener('click', newShow);
 
 document.getElementById('btn-back-dashboard').addEventListener('click', () => {
   if (_isNew) _shows = _shows.filter(s => s.id !== _activeShowId);
   _activeShowId = null; _isNew = false;
-  renderSidebar(); renderDashboard(); showView('dashboard');
+  renderSidebar(); renderShowsGrid(); showView('dashboard');
 });
 
 document.getElementById('btn-toggle-enabled').addEventListener('click', quickToggleEnabled);
@@ -1598,7 +1631,7 @@ document.getElementById('btn-cancel-show').addEventListener('click', () => {
   if (_isNew) {
     _shows = _shows.filter(s => s.id !== _activeShowId);
     _activeShowId = null; _isNew = false;
-    renderSidebar(); renderDashboard(); showView('dashboard');
+    renderSidebar(); renderShowsGrid(); showView('dashboard');
   } else {
     // Restore original data and go back to view mode
     const show = _shows.find(s => s.id === _activeShowId);
@@ -1636,7 +1669,7 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
     }
     applySortUI();
     renderSidebar();
-    renderDashboard();
+    renderShowsGrid();
   });
 });
 
@@ -1644,7 +1677,7 @@ document.getElementById('btn-sort-dir').addEventListener('click', () => {
   _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
   applySortUI();
   renderSidebar();
-  renderDashboard();
+  renderShowsGrid();
 });
 
 // Filter chips
@@ -1657,7 +1690,7 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
       if (_filters.has(f)) _filters.delete(f);
       else                 _filters.add(f);
     }
-    renderDashboard(); // includes applyFilterUI
+    renderShowsGrid(); // includes applyFilterUI
   });
 });
 
@@ -1673,7 +1706,7 @@ document.getElementById('btn-sidebar-toggle').addEventListener('click', () => {
 // Search
 document.getElementById('dash-search').addEventListener('input', function() {
   _searchQuery = this.value.trim();
-  renderDashboard();
+  renderShowsGrid();
 });
 
 // Log: export + open folder
@@ -1716,6 +1749,25 @@ document.getElementById('btn-test-email').addEventListener('click', async () => 
     }
   };
   const res = await api.testEmail(cfg);
+  el.style.color = res.success ? 'var(--green)' : 'var(--red)';
+  el.textContent = res.message;
+});
+
+// Telegram
+function readTelegramForm() {
+  return {
+    enabled:    document.getElementById('s-tg-enabled').checked,
+    token:      document.getElementById('s-tg-token').value.trim(),
+    chatId:     document.getElementById('s-tg-chat').value.trim(),
+    onError:    document.getElementById('s-tg-on-error').checked,
+    onNoUpdate: document.getElementById('s-tg-on-noupdate').checked
+  };
+}
+document.getElementById('btn-test-telegram').addEventListener('click', async () => {
+  const el = document.getElementById('telegram-test-result');
+  el.style.color = 'var(--muted)';
+  el.textContent = '…';
+  const res = await api.testTelegram(readTelegramForm());
   el.style.color = res.success ? 'var(--green)' : 'var(--red)';
   el.textContent = res.message;
 });

@@ -12,6 +12,7 @@ const HISTORY_DIR = path.join(DATA_DIR, 'history');
 
 function getLogsDir()    { return LOGS_DIR; }
 function getDataDir()    { return DATA_DIR; }
+function getHistoryDir() { return HISTORY_DIR; }
 
 function ensureDirs() {
   [DATA_DIR, LOGS_DIR, WORK_DIR, HISTORY_DIR].forEach(d => {
@@ -28,6 +29,7 @@ const DEFAULTS = {
     autostart:   false,
     startHidden: false,
     checkUpdates:    true,
+    telegram: { enabled: false, token: '', chatId: '', onError: true, onNoUpdate: false },
     updateRepo:      'djgragra/flowcast',
     updateDismissed: '',
     email: {
@@ -59,6 +61,9 @@ function normalizeSettings(settings) {
   }
   if (typeof settings.checkUpdates !== 'boolean') settings.checkUpdates = true;
   if (typeof settings.updateDismissed !== 'string') settings.updateDismissed = '';
+  if (!settings.telegram || typeof settings.telegram !== 'object') {
+    settings.telegram = { enabled: false, token: '', chatId: '', onError: true, onNoUpdate: false };
+  }
   return settings;
 }
 
@@ -233,5 +238,5 @@ module.exports = {
   appendLog, readLog, clearLog,
   appendHistory, readHistory, clearHistory,
   getFtpBookmarks, saveFtpBookmark, deleteFtpBookmark,
-  getLogsDir, getDataDir
+  getLogsDir, getDataDir, getHistoryDir
 };

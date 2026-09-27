@@ -1,6 +1,6 @@
 {
   "name": "flowcast",
-  "version": "26.9.4",
+  "version": "26.9.5",
   "description": "Automated production and delivery of radio shows and audio programs: FFmpeg conversion, FTP upload, scheduling and email alerts.",
   "author": "Graziano Melzi <hello@onairgarage.com> (https://onairgarage.com)",
   "homepage": "https://onairgarage.com/tools/flowcast/",
@@ -11,7 +11,9 @@
     "build": "electron-builder --win --x64",
     "build-portable": "electron-builder --win portable --x64",
     "manual": "node scripts/manual/run.js dist",
-    "release:local": "node scripts/fetch-release.js"
+    "release:local": "node scripts/fetch-release.js",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:linux": "electron-builder --linux AppImage --x64"
   },
   "dependencies": {
     "basic-ftp": "^6.2.1",
@@ -32,6 +34,7 @@
       "renderer/**/*",
       "src/**/*",
       "assets/**/*",
+      "!assets/brand-set/**",
       "LICENSE"
     ],
     "copyright": "Copyright © 2026 Graziano Melzi",
@@ -50,6 +53,24 @@
         }
       ]
     },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities",
+      "artifactName": "FlowCast-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "FlowCast-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "assets/linux-icons",
+      "category": "AudioVideo",
+      "artifactName": "FlowCast-${version}-${arch}.${ext}",
+      "synopsis": "Automated production and delivery of radio shows"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
@@ -58,7 +79,8 @@
       "createStartMenuShortcut": true,
       "license": "LICENSE",
       "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico"
+      "uninstallerIcon": "assets/icon.ico",
+      "runAfterFinish": true
     },
     "extraResources": [],
     "asar": true

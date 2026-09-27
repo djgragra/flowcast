@@ -77,5 +77,9 @@
   "mail.noupd_line1": "Source file not updated for {n} consecutive runs.",
   "mail.noupd_line2": "Check that the upstream system is still generating the audio file.",
   "mail.smtp_incomplete": "Incomplete SMTP configuration",
-  "mail.smtp_ok": "SMTP connection verified ✓"
+  "mail.smtp_ok": "SMTP connection verified ✓",
+  "tg.bad_token": "Invalid bot token",
+  "tg.no_chat": "Chat ID missing",
+  "tg.test_message": "✅ FlowCast: Telegram alerts are working.",
+  "tg.test_ok": "Test message sent ✓"
 }

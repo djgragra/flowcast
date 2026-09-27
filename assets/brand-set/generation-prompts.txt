@@ -1,0 +1,4 @@
+Built-in ImageGen, followed by authorized code-based cleanup and export.
+Final lettering prompt:
+Create ONLY a custom wordmark spelling exactly "lowCast": lowercase l o w, uppercase C, lowercase a s t. No F, no symbol, no hyphen. Bold modern geometric italic lettering with diagonal-cut terminals and softly rounded corners, distinctive custom software brand lettering, excellent optical spacing. PURE BLACK lettering on fully OPAQUE solid pure WHITE background. No transparency. No extra text, no shadows, no texture, no gradients. Clean pristine vector-style filled shapes with perfect sharp edges, no distressed effects. Horizontal composition with wide margins. This is a typography asset for FlowCast.
+Symbol: extracted from user-provided original icon.png, preserving its colours and silhouette.
