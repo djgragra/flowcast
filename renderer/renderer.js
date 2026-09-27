@@ -1174,8 +1174,11 @@ function openSettings(section) {
   document.getElementById('s-autostart').checked     = !!_settings.autostart;
   document.getElementById('s-start-hidden').checked  = !!_settings.startHidden;
   document.getElementById('s-check-updates').checked = _settings.checkUpdates !== false;
-  document.getElementById('update-check-result').textContent = '';
-  document.getElementById('btn-upd-open-settings').classList.add('hidden');
+  // Keep showing a download in progress or ready; otherwise start clean
+  if (!['downloading', 'ready', 'error'].includes(_updateState)) {
+    document.getElementById('update-check-result').textContent = '';
+    document.getElementById('btn-upd-open-settings').classList.add('hidden');
+  }
 
   const em = _settings.email || {};
   const smtp = em.smtp || {};
@@ -1287,8 +1290,10 @@ async function checkFfmpegWarning() {
 
 function showUpdateBanner(info) {
   if (!info || !info.available || info.latest === _settings.updateDismissed) return;
-  if (_updateBusy) return;
-  document.getElementById('update-banner').dataset.version = info.latest;
+  const banner = document.getElementById('update-banner');
+  // Do not go back to "available" while downloading or once this version is ready to install
+  if (_updateBusy || (_updateState === 'ready' && banner.dataset.version === info.latest)) return;
+  banner.dataset.version = info.latest;
   setUpdateBanner('available', t('upd.available', { v: info.latest, current: info.current }));
 }
 
@@ -1297,17 +1302,30 @@ function hideUpdateBanner() {
 }
 
 // Download → verify → close and install. The installer only runs when the user asks.
-let _updateBusy = false;
+let _updateBusy  = false;
+let _updateState = null;   // 'available' | 'downloading' | 'ready' | 'error'
 
+// The same state is shown in the banner and in Settings → Info (the settings page covers the banner)
 function setUpdateBanner(state, text) {
+  _updateState = state;
   const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+  const banner = document.getElementById('update-banner');
   document.getElementById('update-banner-text').textContent = text;
   show('update-progress',    state === 'downloading');
   show('btn-update-open',    state === 'available');
   show('btn-update-install', state === 'ready');
   show('btn-update-page',    state === 'error');
-  show('btn-update-dismiss', state !== 'downloading');
-  document.getElementById('update-banner').classList.remove('hidden');
+  show('btn-update-dismiss', state !== 'downloading' && state !== 'ready');
+  banner.classList.toggle('ready', state === 'ready');
+  banner.classList.remove('hidden');
+
+  const res = document.getElementById('update-check-result');
+  res.textContent = text;
+  res.style.color = state === 'error' ? 'var(--red)' : state === 'ready' ? 'var(--green)' : state === 'available' ? 'var(--warn)' : 'var(--muted)';
+  show('btn-upd-open-settings',    state === 'available');
+  show('btn-upd-install-settings', state === 'ready');
+  show('update-progress-settings', state === 'downloading');
+  document.getElementById('btn-check-updates').disabled = state === 'downloading';
 }
 
 async function startUpdateDownload() {
@@ -1319,9 +1337,10 @@ async function startUpdateDownload() {
   const res = await api.downloadUpdate();
   _updateBusy = false;
   if (res.ok) {
-    document.getElementById('btn-update-install').textContent =
-      t(api.platform === 'win32' ? 'upd.install' : 'upd.open_installer');
-    setUpdateBanner('ready', t('upd.ready', { v }));
+    const label = t(api.platform === 'win32' ? 'upd.install' : 'upd.open_installer');
+    document.getElementById('btn-update-install').textContent = label;
+    document.getElementById('btn-upd-install-settings').textContent = label;
+    setUpdateBanner('ready', t(api.platform === 'win32' ? 'upd.ready' : 'upd.ready_open', { v }));
   } else {
     const known = { 'checksum-mismatch': 'upd.err.checksum', 'no-installer': 'upd.err.no_installer', 'no-checksums': 'upd.err.no_checksums' };
     setUpdateBanner('error', t('upd.err', { error: known[res.error] ? t(known[res.error]) : res.error }));
@@ -1331,15 +1350,18 @@ async function startUpdateDownload() {
 api.onUpdateProgress(({ received, total }) => {
   const mb  = n => (n / 1048576).toFixed(0);
   const pct = total ? Math.round(received * 100 / total) : 0;
-  document.getElementById('update-progress-bar').style.width = pct + '%';
-  document.getElementById('update-banner-text').textContent =
-    t('upd.downloading', { v: document.getElementById('update-banner').dataset.version || '' }) +
+  const text = t('upd.downloading', { v: document.getElementById('update-banner').dataset.version || '' }) +
     (total ? ` ${pct}% (${mb(received)}/${mb(total)} MB)` : ` ${mb(received)} MB`);
+  document.getElementById('update-progress-bar').style.width = pct + '%';
+  document.getElementById('update-progress-bar-settings').style.width = pct + '%';
+  document.getElementById('update-banner-text').textContent = text;
+  document.getElementById('update-check-result').textContent = text;
 });
 
 document.getElementById('btn-update-open').addEventListener('click', startUpdateDownload);
 document.getElementById('btn-upd-open-settings').addEventListener('click', startUpdateDownload);
 document.getElementById('btn-update-install').addEventListener('click', () => api.installUpdate());
+document.getElementById('btn-upd-install-settings').addEventListener('click', () => api.installUpdate());
 document.getElementById('btn-update-page').addEventListener('click', () => api.openUpdate());
 document.getElementById('btn-open-manual-help').addEventListener('click', () => api.openManual());
 document.getElementById('btn-open-manual-settings').addEventListener('click', () => api.openManual());

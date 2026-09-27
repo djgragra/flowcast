@@ -426,6 +426,9 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .update-banner.hidden,#btn-upd-open-settings.hidden,.update-banner .hidden{display:none}
 .update-progress{display:inline-block;width:160px;height:6px;border-radius:3px;background:var(--border);overflow:hidden}
 .update-progress>span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.btn-install{background:var(--green);color:#fff}
+.btn-install:hover{filter:brightness(1.08)}
+#update-banner.ready{border-bottom-color:var(--green)}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;width:520px;max-width:90vw}
 .modal h2{font-size:15px;font-weight:700;margin-bottom:14px}
 .modal .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
