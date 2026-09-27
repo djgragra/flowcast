@@ -225,7 +225,8 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .wav-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-width:780px}
 .wav-row{display:flex;align-items:center;gap:6px}
 .wav-n{font-size:11px;color:var(--accent);font-family:monospace;width:62px;flex-shrink:0}
-.wav-input{flex:3;min-width:0}
+.wav-input{flex:3;min-width:0;background:var(--input);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;padding:5px 8px;font-family:inherit;outline:none}
+.wav-input:focus,.wav-note:focus{border-color:var(--accent)}
 .wav-note{flex:2;min-width:0;background:var(--input);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;padding:5px 8px}
 .wav-note::placeholder{color:var(--muted);font-style:italic}
 .wav-row .btn-sm{flex-shrink:0}

@@ -28,3 +28,6 @@ desktop.ini
 .env
 .env.local
 secrets.json
+
+# Local copies of published releases (npm run release:local)
+release/

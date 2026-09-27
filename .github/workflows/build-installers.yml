@@ -65,11 +65,16 @@ jobs:
           # No signing certificates: builds are unsigned.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
+      - name: Build user manuals (PDF, English and Italian)
+        run: npm run manual
+
       - name: Upload installer artifact
         uses: actions/upload-artifact@v7
         with:
           name: flowcast-${{ matrix.name }}
-          path: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            dist/*.pdf
           if-no-files-found: error
           retention-days: 1  # only needed to hand files to the release job; keeps Actions storage near zero
 

@@ -39,6 +39,7 @@ window.LOCALES.es = {
   'ftp.browser.loading':    'Conectando…',
   'ftp.browser.empty':      'Carpeta vacía',
   'ftp.browser.no_host':    'Ingrese el host FTP antes de navegar.',
+  'ftp.browse.title':       'Explorar carpetas FTP',
   'filter.all':        'Todos',
   'filter.active':     '✓ No caducados',
   'filter.enabled':    '● Activados',
@@ -378,7 +379,7 @@ window.LOCALES.es = {
   'help.s6.body':  '<p><strong>Ejecutar ahora</strong>: ejecución normal con verificación de actualización.</p><p><strong>⚡ Forzar</strong>: omite la verificación de fecha, siempre produce.</p><p><strong>🧪 Prueba</strong>: procesa los archivos de audio pero no sube ni copia nada.</p>',
 
   'help.s7.title': '📋 Marcadores FTP',
-  'help.s7.body':  '<p>Las configuraciones FTP se guardan automáticamente como marcadores. El campo <em>Nombre de la conexión</em> es obligatorio.</p><ul><li><strong>▶ Credenciales</strong>: carga host, puerto, usuario y contraseña.</li><li><strong>+ Ruta</strong>: carga credenciales y ruta remota.</li></ul>',
+  'help.s7.body':  '<p>Los servidores FTP se guardan como <strong>marcadores</strong> y se gestionan en <em>Configuración → FTP</em>: <strong>+ Nuevo</strong> crea uno, <strong>✏ Editar</strong> lo modifica.</p><p>En un programa, abre <em>Salida y FTP</em>, elige un marcador y pulsa <strong>▶ Cargar</strong>: host, puerto, usuario y contraseña se copian en el programa. La <em>Carpeta remota</em> es propia de cada programa; el botón <strong>📂</strong> muestra las carpetas del servidor.</p><p><strong>💾 Guardar y propagar</strong> actualiza las credenciales de todos los programas vinculados a ese marcador: cambias una contraseña una sola vez y todos los programas usan la nueva.</p>',
 
   'help.s8.title': '📅 Programación con Fechas',
   'help.s8.body':  '<p>Cada programa puede tener una <strong>fecha de inicio</strong> y una <strong>fecha de fin</strong> opcional. Ideal para programas de temporada.</p>',
@@ -387,10 +388,10 @@ window.LOCALES.es = {
   'help.s9.body':  '<p>La pestaña <strong>Registro</strong> muestra la salida de la última ejecución:</p><ul><li><strong>📁 Carpeta</strong>: abre la carpeta de registros</li><li><strong>💾 Exportar</strong>: guarda el registro en un archivo .txt</li><li><strong>🗑 Limpiar</strong>: limpia el registro del programa actual</li></ul>',
 
   'help.s10.title': '📧 Alertas por Correo',
-  'help.s10.body':  '<p>Configura en Ajustes → <em>Alertas por correo</em>. Requiere un servidor SMTP.</p><ul><li><strong>Alertar en error</strong>: envía correo cuando un programa falla</li><li><strong>Alertar si no hay actualización</strong>: envía correo tras 3 ejecuciones consecutivas sin actualización</li></ul>',
+  'help.s10.body':  '<p>Configura en <em>Configuración → Email</em> para recibir notificaciones automáticas por correo. Requiere un servidor SMTP (Gmail, Outlook, servidor de empresa, etc.).</p><ul><li><strong>Alerta en error</strong>: envía un correo cuando un programa falla (error crítico o de una operación)</li><li><strong>Alerta si el archivo no se actualiza</strong>: envía un correo tras 3 ejecuciones consecutivas sin actualización — el archivo de origen ya no se actualiza</li></ul><p>Hasta tres <strong>destinatarios</strong>. Usa <strong>📧 Probar SMTP</strong> para verificar la conexión antes de guardar.</p><p><strong>Certificados</strong>: FlowCast comprueba el certificado del servidor. El nombre del servidor debe coincidir con el certificado: muchos proveedores usan otro nombre para su servidor de correo (consulta la configuración de tu proveedor). <em>Permitir certificados autofirmados</em> es solo para servidores internos de confianza.</p><p>SMTP comunes: Gmail (<code>smtp.gmail.com</code> puerto 587), Outlook (<code>smtp-mail.outlook.com</code> puerto 587).</p>',
 
   'help.s11.title': '⚙ Configuración Global',
-  'help.s11.body':  '<ul><li><strong>Ruta BASE WAV</strong>: prefijo común para todos los archivos de audio.</li><li><strong>Ruta BASE archivo</strong>: prefijo para las rutas de archivo de los programas.</li><li><strong>FFmpeg</strong>: ruta del ejecutable.</li><li><strong>Tiempo de espera FTP</strong>: segundos antes de que se interrumpa una operación FTP.</li><li><strong>Iniciar con Windows</strong>: la aplicación se inicia con Windows.</li><li><strong>Idioma</strong>: cambia el idioma de la interfaz.</li></ul>',
+  'help.s11.body':  '<ul><li><strong>Ruta BASE WAV</strong>: prefijo común para todos los archivos de audio. Cada programa puede sobrescribirlo.</li><li><strong>Ruta BASE de archivo</strong>: prefijo para las rutas de archivo de los programas (ej. <code>C:\\Archivo</code> + <code>noticias_manana</code> = <code>C:\\Archivo\\noticias_manana</code>)</li><li><strong>FFmpeg</strong>: ruta del ejecutable. Deja <code>ffmpeg</code> si está en el PATH del sistema. <strong>Probar</strong> muestra la versión de FFmpeg y los formatos que la versión instalada no puede codificar; si falta FFmpeg, el panel muestra un aviso.</li><li><strong>Tiempo de espera FTP</strong>: segundos antes de que una operación FTP expire. Predeterminado 30s. Auméntalo para conexiones lentas.</li><li><strong>Iniciar con Windows</strong>: la app se inicia con Windows. Con "minimizado" arranca en segundo plano sin mostrar la ventana.</li><li><strong>Tema</strong>: usa el botón ☀️/🌙 arriba a la derecha para cambiar entre tema claro y oscuro.</li><li><strong>Idioma</strong>: cambia el idioma de la interfaz (English, Italiano, Español).</li></ul>',
 
   'help.s12.title': '🖥 Bandeja del sistema',
   'help.s12.body':  '<p>El programa permanece activo en la bandeja del sistema al cerrar la ventana. Doble clic en el icono para reabrir.</p>',
@@ -400,6 +401,8 @@ window.LOCALES.es = {
 
   'help.s14.title': '📁 Estructura de Archivos',
   'help.s14.body':  '<ul><li><code>%APPDATA%\\FlowCast\\data.json</code> — configuración</li><li><code>%APPDATA%\\FlowCast\\work\\{slug}\\</code> — archivos de trabajo</li><li><code>%APPDATA%\\FlowCast\\logs\\{id}.log</code> — registros por programa</li><li><code>%APPDATA%\\FlowCast\\history\\{id}.json</code> — historial de ejecuciones</li></ul>',
+  'help.s15.title': '🔔 Actualizaciones',
+  'help.s15.body':  '<p>FlowCast comprueba si hay una nueva versión al iniciar y cada 24 horas. Cuando hay una, aparece una barra bajo la barra de título: <strong>Descargar</strong> abre la página de la versión, <strong>Ignorar esta versión</strong> oculta la barra hasta que salga una versión más reciente. No se instala nada automáticamente.</p><p>En <em>Configuración → Info → Actualizaciones</em> puedes comprobar manualmente o desactivar la comprobación automática. La comprobación solo contacta con GitHub (<code>api.github.com</code>).</p><p>Para actualizar: cierra FlowCast desde la bandeja (clic derecho → Salir) y ejecuta el nuevo instalador. Los programas y la configuración se conservan.</p>',
 
   'catchup.log':    '[CATCH-UP] Inicio automático: programa no ejecutado a la hora programada ({time})',
   'show.copy_suffix': ' (copia)',

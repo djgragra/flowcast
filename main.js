@@ -2,6 +2,9 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, Notification } = require('electron');
 const path           = require('path');
 const fs             = require('fs');
+// Development only: `npm run manual` renders the PDF manual with screenshots of the app.
+// scripts/ is not packaged, so this never runs in the installed app.
+if (process.env.FLOWCAST_MANUAL_OUT) require('./scripts/manual/build-manual');
 const { v4: uuidv4 } = require ? (() => { try { return require('uuid'); } catch(e){ return {v4: ()=> Date.now().toString(36)+Math.random().toString(36).slice(2)}; } })() : {v4: ()=> Date.now().toString(36)+Math.random().toString(36).slice(2)};
 const store          = require('./src/store');
 const scheduler      = require('./src/scheduler');
