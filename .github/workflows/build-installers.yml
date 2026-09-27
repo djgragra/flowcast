@@ -85,7 +85,6 @@ jobs:
             ${{ matrix.artifact }}
             dist/*.pdf
           if-no-files-found: error
-          retention-days: 3
           retention-days: 1  # only needed to hand files to the release job; keeps Actions storage near zero
 
   release:
