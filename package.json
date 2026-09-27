@@ -13,7 +13,8 @@
     "manual": "node scripts/manual/run.js dist",
     "release:local": "node scripts/fetch-release.js",
     "build:mac": "electron-builder --mac --x64 --arm64",
-    "build:linux": "electron-builder --linux AppImage --x64"
+    "build:linux": "electron-builder --linux AppImage --x64",
+    "screenshots": "node scripts/screenshots/run.js"
   },
   "dependencies": {
     "basic-ftp": "^6.2.1",
