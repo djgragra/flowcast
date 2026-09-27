@@ -20,6 +20,7 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Dry run** to test a show without uploading or copying anything
 - Tray icon with quick-run menu, configurable close behaviour, start at login
 - Configuration export and import (backup / migration)
+- **Update notice**: checks GitHub for a new release at startup and every 24 hours and shows a banner with a link to the download page (nothing is installed automatically; can be turned off in Settings → Info)
 - Interface in **English, Italian and Spanish**
 
 ## Requirements
@@ -63,6 +64,10 @@ Everything lives in `%APPDATA%\FlowCast\`:
 - `work\<slug>\`: temporary working files
 - `logs\`: one log per show
 - `history\`: run history per show
+
+## Privacy
+
+FlowCast has no telemetry. Besides the FTP and SMTP servers you configure, the only connection it makes is the update check to `api.github.com` (which sees your IP address and the FlowCast version). Turn it off in Settings → Info → *Updates*.
 
 **Note:** FTP and SMTP passwords are stored in `data.json` in plain text, and are included in configuration exports. Protect those files accordingly.
 

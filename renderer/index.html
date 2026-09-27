@@ -19,6 +19,13 @@
   <button class="tb-btn" id="btn-about" data-i18n-title="tb.about.title">ℹ</button>
 </div>
 
+<!-- Update notice (shown in every view) -->
+<div id="update-banner" class="update-banner hidden">
+  <span id="update-banner-text"></span>
+  <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download</button>
+  <button class="btn btn-muted btn-sm" id="btn-update-dismiss" data-i18n="upd.dismiss">Ignore this version</button>
+</div>
+
 <!-- App shell -->
 <div id="app">
 
@@ -595,6 +602,20 @@
 
       <!-- Info -->
       <div class="set-section" id="set-info">
+        <div class="form-section">
+          <h3 data-i18n="set.upd.title">Updates</h3>
+          <div class="cb-row" style="margin-bottom:10px">
+            <label class="toggle"><input type="checkbox" id="s-check-updates"><span class="toggle-slider"></span></label>
+            <label for="s-check-updates" data-i18n="set.upd.auto">Check for new versions automatically (at startup and every 24 hours)</label>
+          </div>
+          <div class="note" style="margin-bottom:10px"><span data-i18n="set.upd.installed">Installed version:</span> <strong id="s-upd-current"></strong></div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-muted" id="btn-check-updates" data-i18n="set.upd.check">Check for updates</button>
+            <button class="btn btn-sm hidden" id="btn-upd-open-settings" data-i18n="upd.download">Download</button>
+            <span id="update-check-result" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div class="note" style="margin-top:8px" data-i18n="set.upd.note">FlowCast only opens the download page: nothing is installed automatically. The check contacts GitHub (api.github.com).</div>
+        </div>
         <div class="form-section" style="margin-bottom:0">
           <h3 data-i18n="set.info.title">Info</h3>
           <div class="note" style="line-height:2">

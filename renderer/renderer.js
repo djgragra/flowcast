@@ -36,6 +36,8 @@ async function init() {
 
   checkFfmpegWarning();
   refreshAboutVersion();
+  api.onUpdateAvailable(showUpdateBanner);
+  api.getUpdateInfo().then(info => { if (info) showUpdateBanner(info); });
 
   api.onShowStatus(({ id, status }) => updateShowStatus(id, status));
   api.onLogLine(({ id, line }) => { if (_activeShowId === id) appendLogLine(line); });
@@ -1164,6 +1166,9 @@ function openSettings(section) {
   document.getElementById('s-ftp-timeout').value    = _settings.ftpTimeout  || 30;
   document.getElementById('s-autostart').checked     = !!_settings.autostart;
   document.getElementById('s-start-hidden').checked  = !!_settings.startHidden;
+  document.getElementById('s-check-updates').checked = _settings.checkUpdates !== false;
+  document.getElementById('update-check-result').textContent = '';
+  document.getElementById('btn-upd-open-settings').classList.add('hidden');
 
   const em = _settings.email || {};
   const smtp = em.smtp || {};
@@ -1209,6 +1214,8 @@ async function saveSettings() {
     ftpTimeout:  parseInt(document.getElementById('s-ftp-timeout').value) || 30,
     autostart:   document.getElementById('s-autostart').checked,
     startHidden: document.getElementById('s-start-hidden').checked,
+    checkUpdates:    document.getElementById('s-check-updates').checked,
+    updateDismissed: _settings.updateDismissed || '',
     theme:       _settings.theme || 'dark',
     language:    document.getElementById('s-language').value    || 'en',
     closeToTray: document.getElementById('s-close-to-tray').value || 'auto',
@@ -1261,9 +1268,56 @@ async function checkFfmpegWarning() {
   el.classList.toggle('hidden', res.ok && unsupported.length === 0);
 }
 
+// ── Update notice ─────────────────────────────────────────────────────────────
+
+function showUpdateBanner(info) {
+  if (!info || !info.available || info.latest === _settings.updateDismissed) return;
+  document.getElementById('update-banner-text').textContent = t('upd.available', { v: info.latest, current: info.current });
+  document.getElementById('update-banner').dataset.version = info.latest;
+  document.getElementById('update-banner').classList.remove('hidden');
+}
+
+function hideUpdateBanner() {
+  document.getElementById('update-banner').classList.add('hidden');
+}
+
+document.getElementById('btn-update-open').addEventListener('click', () => api.openUpdate());
+document.getElementById('btn-upd-open-settings').addEventListener('click', () => api.openUpdate());
+document.getElementById('btn-update-dismiss').addEventListener('click', async () => {
+  const v = document.getElementById('update-banner').dataset.version || '';
+  _settings.updateDismissed = v;
+  await api.dismissUpdate(v);
+  hideUpdateBanner();
+});
+
+document.getElementById('btn-check-updates').addEventListener('click', async () => {
+  const el  = document.getElementById('update-check-result');
+  const btn = document.getElementById('btn-upd-open-settings');
+  btn.classList.add('hidden');
+  el.style.color = 'var(--muted)';
+  el.textContent = t('set.upd.checking');
+  const res = await api.checkUpdates();
+  if (!res.ok) {
+    el.style.color = 'var(--red)';
+    el.textContent = t('set.upd.error', { error: res.error === 'invalid-repo' ? t('set.upd.invalid_repo') : res.error });
+  } else if (res.available) {
+    el.style.color = 'var(--warn)';
+    el.textContent = t('set.upd.new', { v: res.latest });
+    btn.classList.remove('hidden');
+    // A manual check shows the banner again, even for a version ignored before
+    _settings.updateDismissed = '';
+    await api.dismissUpdate('');
+    showUpdateBanner(res);
+  } else {
+    el.style.color = 'var(--green)';
+    el.textContent = res.noRelease ? t('set.upd.no_release') : t('set.upd.uptodate', { v: res.current });
+  }
+});
+
 async function refreshAboutVersion() {
   const v = await api.getAppVersion();
   document.getElementById('about-version').textContent = t('about.version', { v });
+  document.getElementById('s-upd-current').textContent = v;
 }
 
 function openAbout()  { document.getElementById('modal-about').classList.remove('hidden'); }

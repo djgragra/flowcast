@@ -384,6 +384,8 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .ffmpeg-warning{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:8px 12px;border:1px solid var(--warn);border-radius:6px;color:var(--text);font-size:13px}
 .ffmpeg-warning a{color:var(--accent)}
 .ffmpeg-warning.hidden{display:none}
+.update-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 14px;background:var(--card);border-bottom:1px solid var(--accent);font-size:13px;color:var(--text)}
+.update-banner.hidden,#btn-upd-open-settings.hidden{display:none}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;width:520px;max-width:90vw}
 .modal h2{font-size:15px;font-weight:700;margin-bottom:14px}
 .modal .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}

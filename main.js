@@ -9,6 +9,7 @@ const processor      = require('./src/processor');
 const ftpClient      = require('./src/ftp-client');
 const emailNotifier  = require('./src/email-notifier');
 const i18n           = require('./src/i18n');
+const updater        = require('./src/updater');
 const { execFile }   = require('child_process');
 
 // ── Main-process i18n ─────────────────────────────────────────────────────────
@@ -592,6 +593,47 @@ ipcMain.handle('test-email', (_, cfg) => emailNotifier.testConnection(cfg));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
+// ── Update notice ─────────────────────────────────────────────────────────────
+// Asks GitHub for the latest release; the renderer shows a banner with a link to
+// the release page. Nothing is downloaded or installed automatically.
+
+const UPDATE_FIRST_CHECK_MS = 20 * 1000;          // after the 8s catch-up runs
+const UPDATE_INTERVAL_MS    = 24 * 3600 * 1000;
+let _lastUpdateInfo = null;
+
+async function runUpdateCheck(manual) {
+  const info = await updater.checkForUpdate(store.getSettings().updateRepo);
+  if (info.ok) _lastUpdateInfo = info;
+  if (!info.ok) store.appendLog('_system', `Update check failed: ${info.error}`);
+  if (!manual && info.available && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-available', info);
+  }
+  return info;
+}
+
+function scheduleUpdateChecks() {
+  const auto = () => { if (store.getSettings().checkUpdates !== false) runUpdateCheck(false); };
+  setTimeout(auto, UPDATE_FIRST_CHECK_MS);
+  setInterval(auto, UPDATE_INTERVAL_MS);
+}
+
+ipcMain.handle('check-updates', () => runUpdateCheck(true));
+// Result of the last automatic check, for a renderer that loads after it ran
+ipcMain.handle('get-update-info', () =>
+  (store.getSettings().checkUpdates !== false && _lastUpdateInfo && _lastUpdateInfo.available) ? _lastUpdateInfo : null);
+ipcMain.handle('dismiss-update', (_, version) => {
+  store.saveSettings({ updateDismissed: String(version || '') });
+  return true;
+});
+ipcMain.handle('open-update', () => {
+  const repo = store.getSettings().updateRepo;
+  const url  = _lastUpdateInfo && _lastUpdateInfo.url;
+  // Only this repository's release pages
+  if (url && url.startsWith(`https://github.com/${repo}/releases/`)) shell.openExternal(url);
+  else shell.openExternal(`https://github.com/${repo}/releases/latest`);
+  return true;
+});
+
 // FFmpeg is an external program: check it can be started, report its version
 // and which output formats its build can encode (e.g. some builds lack libvorbis)
 const FFMPEG_ENCODERS = { mp3: 'libmp3lame', aac: 'aac', ogg: 'libvorbis' };
@@ -686,6 +728,7 @@ app.whenReady().then(() => {
   }
   setupSchedulers();
   checkMissedRuns();
+  scheduleUpdateChecks();
 });
 
 app.on('window-all-closed', (e) => {

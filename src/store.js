@@ -27,6 +27,9 @@ const DEFAULTS = {
     ftpTimeout:  30,
     autostart:   false,
     startHidden: false,
+    checkUpdates:    true,
+    updateRepo:      'djgragra/flowcast',
+    updateDismissed: '',
     email: {
       enabled:              false,
       smtp: { host: '', port: 587, user: '', password: '', secure: false },
@@ -41,6 +44,23 @@ const DEFAULTS = {
 };
 
 let _data = null;
+
+// ── Settings migration ────────────────────────────────────────────────────────
+// Defaults only apply to a new data.json, and imported backups may carry values from
+// other installs. updateRepo is not editable in the UI, so anything that is empty,
+// not a valid 'owner/repo' or a retired repository is reset to the current one.
+const UPDATE_REPO          = 'djgragra/flowcast';
+const RETIRED_UPDATE_REPOS = ['djgragra/flowcast_p'];   // compared lowercase
+
+function normalizeSettings(settings) {
+  const repo = typeof settings.updateRepo === 'string' ? settings.updateRepo.trim() : '';
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repo) || RETIRED_UPDATE_REPOS.includes(repo.toLowerCase())) {
+    settings.updateRepo = UPDATE_REPO;
+  }
+  if (typeof settings.checkUpdates !== 'boolean') settings.checkUpdates = true;
+  if (typeof settings.updateDismissed !== 'string') settings.updateDismissed = '';
+  return settings;
+}
 
 function load() {
   // ── Migration: copy data from old "Podcast Manager" userData dir if upgrading ──
@@ -58,6 +78,9 @@ function load() {
   } catch(e) {
     _data = JSON.parse(JSON.stringify(DEFAULTS));
   }
+  const before = JSON.stringify(_data.settings);
+  normalizeSettings(_data.settings);
+  if (JSON.stringify(_data.settings) !== before) save();
   return _data;
 }
 
@@ -76,7 +99,7 @@ function getSettings() {
 }
 
 function saveSettings(s) {
-  getData().settings = { ...getData().settings, ...s };
+  getData().settings = normalizeSettings({ ...getData().settings, ...s });
   save();
 }
 

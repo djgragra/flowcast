@@ -35,6 +35,13 @@ contextBridge.exposeInMainWorld('api', {
   // App version
   getAppVersion:  ()    => ipcRenderer.invoke('get-app-version'),
 
+  // Update notice
+  checkUpdates:   ()    => ipcRenderer.invoke('check-updates'),
+  getUpdateInfo:  ()    => ipcRenderer.invoke('get-update-info'),
+  dismissUpdate:  (v)   => ipcRenderer.invoke('dismiss-update', v),
+  openUpdate:     ()    => ipcRenderer.invoke('open-update'),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, d) => cb(d)),
+
   // Next run time
   nextRun:        (show) => ipcRenderer.invoke('next-run', show),
   getNextTask:    ()     => ipcRenderer.invoke('get-next-task'),
