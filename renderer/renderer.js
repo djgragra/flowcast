@@ -1272,17 +1272,62 @@ async function checkFfmpegWarning() {
 
 function showUpdateBanner(info) {
   if (!info || !info.available || info.latest === _settings.updateDismissed) return;
-  document.getElementById('update-banner-text').textContent = t('upd.available', { v: info.latest, current: info.current });
+  if (_updateBusy) return;
   document.getElementById('update-banner').dataset.version = info.latest;
-  document.getElementById('update-banner').classList.remove('hidden');
+  setUpdateBanner('available', t('upd.available', { v: info.latest, current: info.current }));
 }
 
 function hideUpdateBanner() {
   document.getElementById('update-banner').classList.add('hidden');
 }
 
-document.getElementById('btn-update-open').addEventListener('click', () => api.openUpdate());
-document.getElementById('btn-upd-open-settings').addEventListener('click', () => api.openUpdate());
+// Download → verify → close and install. The installer only runs when the user asks.
+let _updateBusy = false;
+
+function setUpdateBanner(state, text) {
+  const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+  document.getElementById('update-banner-text').textContent = text;
+  show('update-progress',    state === 'downloading');
+  show('btn-update-open',    state === 'available');
+  show('btn-update-install', state === 'ready');
+  show('btn-update-page',    state === 'error');
+  show('btn-update-dismiss', state !== 'downloading');
+  document.getElementById('update-banner').classList.remove('hidden');
+}
+
+async function startUpdateDownload() {
+  if (_updateBusy) return;
+  _updateBusy = true;
+  const v = document.getElementById('update-banner').dataset.version || '';
+  document.getElementById('update-progress-bar').style.width = '0';
+  setUpdateBanner('downloading', t('upd.downloading', { v }));
+  const res = await api.downloadUpdate();
+  _updateBusy = false;
+  if (res.ok) {
+    document.getElementById('btn-update-install').textContent =
+      t(api.platform === 'win32' ? 'upd.install' : 'upd.open_installer');
+    setUpdateBanner('ready', t('upd.ready', { v }));
+  } else {
+    const known = { 'checksum-mismatch': 'upd.err.checksum', 'no-installer': 'upd.err.no_installer', 'no-checksums': 'upd.err.no_checksums' };
+    setUpdateBanner('error', t('upd.err', { error: known[res.error] ? t(known[res.error]) : res.error }));
+  }
+}
+
+api.onUpdateProgress(({ received, total }) => {
+  const mb  = n => (n / 1048576).toFixed(0);
+  const pct = total ? Math.round(received * 100 / total) : 0;
+  document.getElementById('update-progress-bar').style.width = pct + '%';
+  document.getElementById('update-banner-text').textContent =
+    t('upd.downloading', { v: document.getElementById('update-banner').dataset.version || '' }) +
+    (total ? ` ${pct}% (${mb(received)}/${mb(total)} MB)` : ` ${mb(received)} MB`);
+});
+
+document.getElementById('btn-update-open').addEventListener('click', startUpdateDownload);
+document.getElementById('btn-upd-open-settings').addEventListener('click', startUpdateDownload);
+document.getElementById('btn-update-install').addEventListener('click', () => api.installUpdate());
+document.getElementById('btn-update-page').addEventListener('click', () => api.openUpdate());
+document.getElementById('btn-open-manual-help').addEventListener('click', () => api.openManual());
+document.getElementById('btn-open-manual-settings').addEventListener('click', () => api.openManual());
 document.getElementById('btn-update-dismiss').addEventListener('click', async () => {
   const v = document.getElementById('update-banner').dataset.version || '';
   _settings.updateDismissed = v;

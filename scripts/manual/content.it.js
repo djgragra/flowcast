@@ -173,10 +173,15 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <p>FlowCast resta attivo nell'area di notifica quando chiudi la finestra (secondo l'impostazione <em>Alla pressione di X</em>). Doppio clic sull'icona per aprire la finestra. Tasto destro per <em>Esegui ora</em> su ogni show pianificato attivo, e <strong>Esci</strong> per chiudere del tutto FlowCast.</p>` },
 
     { title: 'Aggiornamenti', html: `
-<p>FlowCast controlla se c'è una nuova versione all'avvio e ogni 24 ore. Quando ce n'è una, compare una barra sotto la barra del titolo: <strong>Scarica</strong> apre la pagina della release, <strong>Ignora questa versione</strong> nasconde la barra finché non esce una versione successiva. Niente viene installato automaticamente.</p>
+<p>FlowCast controlla se c'è una nuova versione all'avvio e ogni 24 ore. Quando ce n'è una, compare una barra sotto la barra del titolo:</p>
+<ol>
+<li>Premi <strong>Scarica e installa</strong>: FlowCast scarica l'installer nella cartella <em>Download</em> e lo verifica con il checksum SHA-256 della release.</li>
+<li>Premi <strong>Chiudi e installa</strong>: FlowCast si chiude e parte l'installer. Segui la procedura come per la prima installazione.</li>
+</ol>
+<p><strong>Ignora questa versione</strong> nasconde la barra finché non esce una versione successiva. Niente viene installato finché non premi il pulsante; se il download non riesce, <strong>Apri pagina di download</strong> apre la release su GitHub.</p>
 <p>In <em>Impostazioni → Info → Aggiornamenti</em> puoi controllare a mano o disattivare il controllo automatico.</p>
 {{shot:settings-info}}
-<p>Per aggiornare: chiudi FlowCast dalla tray e avvia il nuovo installer. Show e impostazioni restano.</p>` },
+<p>Show e impostazioni restano. Il pulsante <strong>📖 Manuale utente (PDF)</strong> (nella Guida e in <em>Impostazioni → Info</em>) apre questo manuale per la versione installata.</p>` },
 
     { title: 'Backup e trasferimento su un altro PC', html: `
 <p>In <em>Impostazioni → Backup</em>:</p>

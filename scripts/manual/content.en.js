@@ -173,10 +173,15 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <p>FlowCast keeps running in the notification area when the window is closed (depending on the <em>When pressing X</em> setting). Double-click the icon to open the window. Right-click for <em>Run now</em> on each enabled scheduled show, and <strong>Quit</strong> to close FlowCast completely.</p>` },
 
     { title: 'Updates', html: `
-<p>FlowCast checks for a new version at startup and every 24 hours. When one is available, a bar appears under the title bar: <strong>Download</strong> opens the release page, <strong>Ignore this version</strong> hides the bar until a newer version is released. Nothing is installed automatically.</p>
+<p>FlowCast checks for a new version at startup and every 24 hours. When one is available, a bar appears under the title bar:</p>
+<ol>
+<li>Press <strong>Download and install</strong>: FlowCast downloads the installer to your <em>Downloads</em> folder and checks it against the SHA-256 checksum of the release.</li>
+<li>Press <strong>Close and install</strong>: FlowCast closes and the installer starts. Follow the wizard as for the first installation.</li>
+</ol>
+<p><strong>Ignore this version</strong> hides the bar until a newer version is released. Nothing is installed until you press the button; if the download fails, <strong>Open download page</strong> opens the release on GitHub.</p>
 <p>In <em>Settings → Info → Updates</em> you can check manually or turn the automatic check off.</p>
 {{shot:settings-info}}
-<p>To update: quit FlowCast from the tray and run the new installer. Shows and settings are kept.</p>` },
+<p>Shows and settings are kept. The <strong>📖 User manual (PDF)</strong> button (in the Guide and in <em>Settings → Info</em>) opens this manual for the installed version.</p>` },
 
     { title: 'Backup and moving to another PC', html: `
 <p>In <em>Settings → Backup</em>:</p>

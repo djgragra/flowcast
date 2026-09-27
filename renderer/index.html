@@ -22,7 +22,10 @@
 <!-- Update notice (shown in every view) -->
 <div id="update-banner" class="update-banner hidden">
   <span id="update-banner-text"></span>
-  <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download</button>
+  <span class="update-progress hidden" id="update-progress"><span id="update-progress-bar"></span></span>
+  <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download and install</button>
+  <button class="btn btn-sm hidden" id="btn-update-install"></button>
+  <button class="btn btn-muted btn-sm hidden" id="btn-update-page" data-i18n="upd.page">Open download page</button>
   <button class="btn btn-muted btn-sm" id="btn-update-dismiss" data-i18n="upd.dismiss">Ignore this version</button>
 </div>
 
@@ -611,7 +614,8 @@
           <div class="note" style="margin-bottom:10px"><span data-i18n="set.upd.installed">Installed version:</span> <strong id="s-upd-current"></strong></div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <button class="btn btn-muted" id="btn-check-updates" data-i18n="set.upd.check">Check for updates</button>
-            <button class="btn btn-sm hidden" id="btn-upd-open-settings" data-i18n="upd.download">Download</button>
+            <button class="btn btn-sm hidden" id="btn-upd-open-settings" data-i18n="upd.download">Download and install</button>
+            <button class="btn btn-muted" id="btn-open-manual-settings" data-i18n="manual.open">📖 User manual (PDF)</button>
             <span id="update-check-result" style="font-size:12px;color:var(--muted)"></span>
           </div>
           <div class="note" style="margin-top:8px" data-i18n="set.upd.note">FlowCast only opens the download page: nothing is installed automatically. The check contacts GitHub (api.github.com).</div>
@@ -662,7 +666,10 @@
   <div class="modal help-modal">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 id="help-title" data-i18n="help.title">❓ FlowCast Guide</h2>
-      <button class="btn btn-muted btn-sm" id="btn-help-close">✕</button>
+      <span style="display:flex;gap:8px">
+        <button class="btn btn-muted btn-sm" id="btn-open-manual-help" data-i18n="manual.open">📖 User manual (PDF)</button>
+        <button class="btn btn-muted btn-sm" id="btn-help-close">✕</button>
+      </span>
     </div>
     <div class="help-content" id="help-content">
       <div class="help-section"><h3 data-i18n="help.s1.title"></h3><div data-i18n-html="help.s1.body"></div></div>

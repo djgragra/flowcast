@@ -596,9 +596,10 @@ ipcMain.handle('test-email', (_, cfg) => emailNotifier.testConnection(cfg));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
-// ── Update notice ─────────────────────────────────────────────────────────────
-// Asks GitHub for the latest release; the renderer shows a banner with a link to
-// the release page. Nothing is downloaded or installed automatically.
+// ── Updates ───────────────────────────────────────────────────────────────────
+// Asks GitHub for the latest release; the renderer shows a banner. On request the
+// installer is downloaded to the Downloads folder and verified (SHA-256); it only
+// runs when the user presses "Close and install".
 
 const UPDATE_FIRST_CHECK_MS = 20 * 1000;          // after the 8s catch-up runs
 const UPDATE_INTERVAL_MS    = 24 * 3600 * 1000;
@@ -628,6 +629,52 @@ ipcMain.handle('dismiss-update', (_, version) => {
   store.saveSettings({ updateDismissed: String(version || '') });
   return true;
 });
+let _downloadedInstaller = null;   // { version, file } once downloaded and verified
+
+ipcMain.handle('download-update', async () => {
+  const info = _lastUpdateInfo;
+  if (!info || !info.available) return { ok: false, error: 'no-update' };
+  if (_downloadedInstaller && _downloadedInstaller.version === info.latest && fs.existsSync(_downloadedInstaller.file)) {
+    return { ok: true, file: _downloadedInstaller.file };
+  }
+  try {
+    const file = await updater.downloadInstaller(info, app.getPath('downloads'), (received, total) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-progress', { received, total });
+    });
+    _downloadedInstaller = { version: info.latest, file };
+    store.appendLog('_system', `Update ${info.latest} downloaded and verified: ${file}`);
+    return { ok: true, file };
+  } catch(e) {
+    store.appendLog('_system', `Update download failed: ${e.message}`);
+    return { ok: false, error: e.message };
+  }
+});
+
+// Windows: start the installer and quit so it can replace the app.
+// macOS / Linux: open the downloaded disk image / show the AppImage; the user completes it.
+ipcMain.handle('install-update', () => {
+  const d = _downloadedInstaller;
+  if (!d || !fs.existsSync(d.file)) return false;
+  if (process.platform === 'win32') {
+    require('child_process').spawn(d.file, [], { detached: true, stdio: 'ignore' }).unref();
+    app.isQuitting = true;
+    setTimeout(() => app.quit(), 500);
+  } else if (process.platform === 'darwin') {
+    shell.openPath(d.file);
+  } else {
+    shell.showItemInFolder(d.file);
+  }
+  return true;
+});
+
+// User manual (PDF) of the installed version, attached to its GitHub release
+ipcMain.handle('open-manual', () => {
+  const v    = app.getVersion();
+  const name = ((store.getSettings().language || 'en').startsWith('it')) ? 'FlowCast-Manuale' : 'FlowCast-Manual';
+  shell.openExternal(`https://github.com/${store.getSettings().updateRepo}/releases/download/v${v}/${name}-${v}.pdf`);
+  return true;
+});
+
 ipcMain.handle('open-update', () => {
   const repo = store.getSettings().updateRepo;
   const url  = _lastUpdateInfo && _lastUpdateInfo.url;

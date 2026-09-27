@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('api', {
   getUpdateInfo:  ()    => ipcRenderer.invoke('get-update-info'),
   dismissUpdate:  (v)   => ipcRenderer.invoke('dismiss-update', v),
   openUpdate:     ()    => ipcRenderer.invoke('open-update'),
+  downloadUpdate: ()    => ipcRenderer.invoke('download-update'),
+  installUpdate:  ()    => ipcRenderer.invoke('install-update'),
+  onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, d) => cb(d)),
+  openManual:     ()    => ipcRenderer.invoke('open-manual'),
+  platform:       process.platform,
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, d) => cb(d)),
 
   // Next run time

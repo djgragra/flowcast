@@ -20,7 +20,8 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Dry run** to test a show without uploading or copying anything
 - Tray icon with quick-run menu, configurable close behaviour, start at login
 - Configuration export and import (backup / migration)
-- **Update notice**: checks GitHub for a new release at startup and every 24 hours and shows a banner with a link to the download page (nothing is installed automatically; can be turned off in Settings → Info)
+- **Updates**: checks GitHub for a new release at startup and every 24 hours; *Download and install* fetches the installer, verifies its SHA-256 and runs it only when you press *Close and install* (the check can be turned off in Settings → Info)
+- **User manual** (PDF, English and Italian) attached to every release and one click away from the in-app Guide
 - Interface in **English, Italian and Spanish**
 
 ## Requirements
@@ -47,7 +48,7 @@ If you only use the *Direct copy* output format with a single source file, FFmpe
 
 ## Install
 
-Download the installer (`FlowCast-Setup-<version>.exe`) from the [Releases](../../releases) page.
+Download the installer (`FlowCast-Setup-<version>.exe`) from the [Releases](../../releases) page. Each release also has the user manual (`FlowCast-Manual-<version>.pdf`, `FlowCast-Manuale-<version>.pdf`) and a zip with everything (`FlowCast-<version>.zip`).
 Check the file against `SHA256SUMS.txt`, published with each release:
 
 ```powershell

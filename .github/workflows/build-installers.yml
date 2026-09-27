@@ -90,6 +90,12 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Zip with installers and manuals (single download for the website)
+        working-directory: dist
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          zip -9 -j "FlowCast-${VERSION}.zip" $(ls | grep -v -e '\.zip$' -e '^SHA256SUMS')
+
       - name: Checksums
         working-directory: dist
         run: sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
