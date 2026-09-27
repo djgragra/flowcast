@@ -225,5 +225,9 @@ setTimeout(() => { console.error('[manual] timed out'); app.exit(1); }, TIMEOUT_
 
 app.whenReady()
   .then(main)
-  .then(() => { fs.rmSync(tmpData, { recursive: true, force: true }); app.exit(0); })
+  .then(() => {
+    // Best effort: on Windows the app still holds files in its data folder
+    try { fs.rmSync(tmpData, { recursive: true, force: true }); } catch(_) {}
+    app.exit(0);
+  })
   .catch(err => { console.error('[manual] failed:', err); app.exit(1); });
