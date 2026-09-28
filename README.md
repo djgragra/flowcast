@@ -19,10 +19,10 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Catch-up**: if the computer was off at the scheduled time, missed shows run automatically at the next start
 - **Dashboard** with statistics: productions per day (7/14/30 days), per show and per hour, success rate, audio produced, average production time, recent activity and shows with errors
 - **Schedule** view with all show cards (search, filters, sorting) and a **timeline** of the next 24 hours or 7 days; the sidebar lists the **next productions in the queue** and a top bar shows the next production with a countdown
-- **Categories** with colours: shows grouped in the sidebar and counted in the statistics
+- **Categories** with colours (customizable in Settings): shows grouped in the sidebar and counted in the statistics
 - **Console** with the live output of every production
 - **Email alerts** (SMTP) on errors and when a source file has not been updated for 3 consecutive runs; server certificates are verified (self-signed certificates can be allowed explicitly)
-- **Telegram alerts** through your own bot, with the same text as the emails
+- **Telegram alerts** through your own bot, to one or more recipients (each with a note on who it is), with the same text as the emails
 - **Dry run** to test a show without uploading or copying anything
 - Tray icon with quick-run menu, configurable close behaviour, start at login
 - Configuration export and import (backup / migration)

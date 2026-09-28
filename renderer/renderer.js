@@ -1193,10 +1193,11 @@ function openSettings(section) {
   const tg = _settings.telegram || {};
   document.getElementById('s-tg-enabled').checked    = !!tg.enabled;
   document.getElementById('s-tg-token').value        = tg.token  || '';
-  document.getElementById('s-tg-chat').value         = tg.chatId || '';
+  renderTelegramRecipients(tg.recipients || []);
   document.getElementById('s-tg-on-error').checked   = tg.onError !== false;
   document.getElementById('s-tg-on-noupdate').checked = !!tg.onNoUpdate;
   document.getElementById('telegram-test-result').textContent = '';
+  renderCategoryColors();
   const recips = (em.recipients || '').split('\n').filter(Boolean);
   document.getElementById('s-email-recip-1').value = recips[0] || '';
   document.getElementById('s-email-recip-2').value = recips[1] || '';
@@ -1775,12 +1776,40 @@ document.getElementById('btn-test-email').addEventListener('click', async () => 
   el.textContent = res.message;
 });
 
-// Telegram
+// Telegram — one row per recipient (chat ID + a note on who it is), same pattern as audio sources
+function addTgRecipientRow(chatId = '', note = '') {
+  const container = document.getElementById('telegram-recipients');
+  const row = document.createElement('div');
+  row.className = 'wav-row';
+  row.innerHTML = `
+    <input type="text" class="wav-input tg-recip-chat" placeholder="${t('set.tg.chat.ph')}" value="${esc(chatId)}">
+    <input type="text" class="wav-note tg-recip-note" placeholder="${t('set.tg.note.ph')}" value="${esc(note)}">
+    <button class="btn btn-muted btn-sm tg-recip-del" title="${t('src.row.remove')}">✕</button>`;
+  row.querySelector('.tg-recip-del').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
+function renderTelegramRecipients(recipients) {
+  document.getElementById('telegram-recipients').innerHTML = '';
+  (recipients || []).forEach(r => addTgRecipientRow(r.chatId, r.note));
+}
+
+function collectTgRecipients() {
+  return Array.from(document.querySelectorAll('#telegram-recipients .wav-row'))
+    .map(row => ({
+      chatId: row.querySelector('.tg-recip-chat').value.trim(),
+      note:   row.querySelector('.tg-recip-note').value.trim()
+    }))
+    .filter(r => r.chatId);
+}
+
+document.getElementById('btn-add-tg-recipient').addEventListener('click', () => addTgRecipientRow());
+
 function readTelegramForm() {
   return {
     enabled:    document.getElementById('s-tg-enabled').checked,
     token:      document.getElementById('s-tg-token').value.trim(),
-    chatId:     document.getElementById('s-tg-chat').value.trim(),
+    recipients: collectTgRecipients(),
     onError:    document.getElementById('s-tg-on-error').checked,
     onNoUpdate: document.getElementById('s-tg-on-noupdate').checked
   };

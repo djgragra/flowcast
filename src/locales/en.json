@@ -79,7 +79,8 @@
   "mail.smtp_incomplete": "Incomplete SMTP configuration",
   "mail.smtp_ok": "SMTP connection verified ✓",
   "tg.bad_token": "Invalid bot token",
-  "tg.no_chat": "Chat ID missing",
   "tg.test_message": "✅ FlowCast: Telegram alerts are working.",
-  "tg.test_ok": "Test message sent ✓"
+  "tg.test_ok": "Test message sent ✓",
+  "tg.no_recipients": "No recipients",
+  "tg.send_failed": "Not sent to: {list}"
 }

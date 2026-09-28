@@ -64,9 +64,44 @@ function categoryOf(show) { return (show.category || '').trim(); }
 
 function categoryColor(name) {
   if (!name) return '#9aa1ae';
+  const custom = (_settings.categoryColors || {})[name];
+  if (/^#[0-9a-f]{6}$/i.test(custom || '')) return custom;
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
+}
+
+// Settings → General: one row per category in use, with a colour picker and a reset button
+function renderCategoryColors() {
+  const el = document.getElementById('category-colors-list');
+  if (!el) return;
+  const cats = allCategories();
+  if (!cats.length) { el.innerHTML = `<div class="hint">${t('set.cat.empty')}</div>`; return; }
+  el.innerHTML = cats.map(c => {
+    const n = _shows.filter(s => categoryOf(s) === c).length;
+    return `<div class="cat-color-row">
+      <input type="color" value="${categoryColor(c)}" data-cat-color="${esc(c)}" title="${esc(t('set.cat.pick'))}">
+      <span class="cat-color-name">${esc(c)}</span>
+      <span class="hint">${t(n === 1 ? 'set.cat.count.one' : 'set.cat.count', { n })}</span>
+      <button type="button" class="btn btn-xs btn-ghost" data-cat-reset="${esc(c)}" title="${esc(t('set.cat.reset'))}">↺</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-cat-color]').forEach(input => {
+    input.addEventListener('change', () => saveCategoryColor(input.dataset.catColor, input.value));
+  });
+  el.querySelectorAll('[data-cat-reset]').forEach(btn => {
+    btn.addEventListener('click', () => saveCategoryColor(btn.dataset.catReset, null));
+  });
+}
+
+async function saveCategoryColor(name, color) {
+  const colors = { ..._settings.categoryColors };
+  if (color) colors[name] = color; else delete colors[name];
+  _settings = { ..._settings, categoryColors: colors };
+  await api.saveSettings(_settings);
+  renderSidebar();
+  renderCategoryColors();
+  if (document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
 }
 
 function categoryDot(name) {

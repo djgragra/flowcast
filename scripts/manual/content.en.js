@@ -153,12 +153,14 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 {{shot:settings-email}}
 <p><strong>Certificates.</strong> FlowCast checks the certificate of the mail server, and the server name must match it. Many providers use a different name for their SMTP server than your own domain: use the name given by your provider. <em>Allow self-signed certificates</em> is meant only for internal servers you trust.</p>
 <h3>Telegram</h3>
-<p>The same alerts can also be sent to Telegram (same page, <em>Telegram alerts</em>):</p>
+<p>The same alerts can also be sent to Telegram (same page, <em>Telegram alerts</em>), to one or more recipients:</p>
 <ol>
 <li>In Telegram, write to <strong>@BotFather</strong>, create a bot (<code>/newbot</code>) and copy its <em>token</em>.</li>
-<li>Send a message to your bot, or add it to a group. Find the <em>chat ID</em> with <strong>@userinfobot</strong> or by opening <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>.</li>
-<li>Paste token and chat ID, choose the alerts and press <strong>✈ Test Telegram</strong>, then save.</li>
-</ol>` },
+<li>For each recipient (a person, a group or a channel), find their <em>chat ID</em> with <strong>@userinfobot</strong> or by opening <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>; a group or channel ID starts with <code>-</code>.</li>
+<li>Paste the token, then press <strong>+ Add recipient</strong> for each chat ID and use the <em>note</em> field to remember who it is (e.g. "Anna", "Control room") — it is only shown to you, not sent to Telegram.</li>
+<li>Choose the alerts and press <strong>✈ Test Telegram</strong>: it reports which recipients could not be reached, without stopping the others.</li>
+</ol>
+<p>Every recipient gets every alert, with the same text as the emails.</p>` },
 
     { title: 'Dashboard', html: `
 <p>The <strong>top bar</strong>, always visible, shows the clock, the <em>next production</em> with a countdown and the shows <em>in production</em> right now.</p>
@@ -181,7 +183,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 </ul>
 {{shot:timeline}}
 <p>Under the navigation buttons the sidebar lists the <strong>next productions in the queue</strong>; the first one is highlighted. Below it are the shows, each with its status (OK, Error, Off…) and next run.</p>
-<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter).</p>` },
+<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch, or ↺ to go back to automatic.</p>` },
 
     { title: 'Settings', html: `
 <table>

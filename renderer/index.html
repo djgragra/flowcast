@@ -552,7 +552,7 @@
             <div class="note" data-i18n="set.close_behavior.note">Auto: if no scheduled shows exist, X closes the app completely.</div>
           </div>
         </div>
-        <div class="form-section" style="margin-bottom:0">
+        <div class="form-section">
           <h3 data-i18n="set.lang.title">Language</h3>
           <div class="field">
             <label data-i18n="set.lang.label">Interface language</label>
@@ -562,6 +562,11 @@
               <option value="es" data-i18n="set.lang.es">Español</option>
             </select>
           </div>
+        </div>
+        <div class="form-section" style="margin-bottom:0">
+          <h3 data-i18n="set.cat.title">Categories and colors</h3>
+          <div class="note" style="margin-bottom:10px" data-i18n="set.cat.note">Each category gets a colour automatically, used in the shows list, Schedule and labels. Click it to pick another one, ↺ resets it to automatic.</div>
+          <div id="category-colors-list"></div>
         </div>
       </div>
 
@@ -633,15 +638,14 @@
               <label class="toggle"><input type="checkbox" id="s-tg-enabled"><span class="toggle-slider"></span></label>
               <label for="s-tg-enabled" data-i18n="set.tg.enabled">Send alerts to Telegram</label>
             </div>
-            <div class="row2">
-              <div class="field">
-                <label data-i18n="set.tg.token">Bot token</label>
-                <input type="password" id="s-tg-token" placeholder="123456789:AA…">
-              </div>
-              <div class="field">
-                <label data-i18n="set.tg.chat">Chat ID</label>
-                <input type="text" id="s-tg-chat" placeholder="-1001234567890">
-              </div>
+            <div class="field">
+              <label data-i18n="set.tg.token">Bot token</label>
+              <input type="password" id="s-tg-token" placeholder="123456789:AA…">
+            </div>
+            <div class="field">
+              <label data-i18n="set.tg.recipients">Recipients</label>
+              <div id="telegram-recipients"></div>
+              <button type="button" class="btn btn-muted btn-sm" id="btn-add-tg-recipient" data-i18n="set.tg.add_recipient">+ Add recipient</button>
             </div>
             <div class="cb-row" style="margin-bottom:6px">
               <input type="checkbox" id="s-tg-on-error">
@@ -651,7 +655,13 @@
               <input type="checkbox" id="s-tg-on-noupdate">
               <label for="s-tg-on-noupdate" data-i18n="set.tg.on_noupdate">Alert if the file is not updated</label>
             </div>
-            <div class="note" style="margin-bottom:10px" data-i18n-html="set.tg.note"></div>
+            <details class="tg-help" style="margin-bottom:10px">
+              <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;list-style:none">
+                <span data-i18n="set.tg.help.title">How do I find the bot token and chat IDs?</span>
+              </summary>
+              <div class="note" style="margin-top:10px" data-i18n-html="set.tg.help.body"></div>
+            </details>
+            <div class="note" style="margin-bottom:10px" data-i18n="set.tg.hint">Every recipient gets the alerts. Use the note to remember who it is.</div>
             <div style="display:flex;align-items:center;gap:10px">
               <button class="btn btn-muted" id="btn-test-telegram" data-i18n="set.tg.test">✈ Test Telegram</button>
               <span id="telegram-test-result" style="font-size:12px;color:var(--muted)"></span>

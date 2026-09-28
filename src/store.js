@@ -29,7 +29,7 @@ const DEFAULTS = {
     autostart:   false,
     startHidden: false,
     checkUpdates:    true,
-    telegram: { enabled: false, token: '', chatId: '', onError: true, onNoUpdate: false },
+    telegram: { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false },
     updateRepo:      'djgragra/flowcast',
     updateDismissed: '',
     email: {
@@ -62,7 +62,17 @@ function normalizeSettings(settings) {
   if (typeof settings.checkUpdates !== 'boolean') settings.checkUpdates = true;
   if (typeof settings.updateDismissed !== 'string') settings.updateDismissed = '';
   if (!settings.telegram || typeof settings.telegram !== 'object') {
-    settings.telegram = { enabled: false, token: '', chatId: '', onError: true, onNoUpdate: false };
+    settings.telegram = { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false };
+  } else {
+    const tg = settings.telegram;
+    if (!Array.isArray(tg.recipients)) tg.recipients = [];
+    // Pre-26.9.7 installs stored a single chatId: migrate it into recipients once
+    if (!tg.recipients.length && typeof tg.chatId === 'string' && tg.chatId.trim()) {
+      tg.recipients = [{ chatId: tg.chatId.trim(), note: '' }];
+    }
+    delete tg.chatId;
+    if (typeof tg.onError !== 'boolean') tg.onError = true;
+    if (typeof tg.onNoUpdate !== 'boolean') tg.onNoUpdate = false;
   }
   return settings;
 }

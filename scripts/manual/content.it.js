@@ -153,12 +153,14 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 {{shot:settings-email}}
 <p><strong>Certificati.</strong> FlowCast verifica il certificato del server di posta, e il nome del server deve corrispondere. Molti provider usano per il server SMTP un nome diverso dal tuo dominio: usa il nome indicato dal tuo provider. <em>Consenti certificati self-signed</em> serve solo per server interni di cui ti fidi.</p>
 <h3>Telegram</h3>
-<p>Gli stessi avvisi possono arrivare anche su Telegram (stessa pagina, <em>Avvisi Telegram</em>):</p>
+<p>Gli stessi avvisi possono arrivare anche su Telegram (stessa pagina, <em>Avvisi Telegram</em>), a uno o più destinatari:</p>
 <ol>
 <li>Su Telegram scrivi a <strong>@BotFather</strong>, crea un bot (<code>/newbot</code>) e copia il <em>token</em>.</li>
-<li>Invia un messaggio al tuo bot, oppure aggiungilo a un gruppo. Trova il <em>chat ID</em> con <strong>@userinfobot</strong> o aprendo <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>.</li>
-<li>Incolla token e chat ID, scegli gli avvisi e premi <strong>✈ Testa Telegram</strong>, poi salva.</li>
-</ol>` },
+<li>Per ogni destinatario (una persona, un gruppo o un canale), trova il suo <em>chat ID</em> con <strong>@userinfobot</strong> o aprendo <code>api.telegram.org/bot&lt;token&gt;/getUpdates</code>; il chat ID di un gruppo o canale inizia con <code>-</code>.</li>
+<li>Incolla il token, poi premi <strong>+ Aggiungi destinatario</strong> per ogni chat ID e usa il campo <em>nota</em> per ricordare chi è (es. "Anna", "Regia") — è visibile solo a te, non viene inviata a Telegram.</li>
+<li>Scegli gli avvisi e premi <strong>✈ Testa Telegram</strong>: segnala a quali destinatari non è riuscito ad arrivare, senza fermarsi agli altri.</li>
+</ol>
+<p>Ogni destinatario riceve tutti gli avvisi, con lo stesso testo delle email.</p>` },
 
     { title: 'Dashboard', html: `
 <p>La <strong>barra in alto</strong>, sempre visibile, mostra l'orologio, la <em>prossima produzione</em> con il conto alla rovescia e gli show <em>in produzione</em> in quel momento.</p>
@@ -181,7 +183,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 </ul>
 {{shot:timeline}}
 <p>Sotto i pulsanti di navigazione la barra laterale elenca le <strong>prossime produzioni in coda</strong>; la prima è evidenziata. Sotto ci sono gli show, ciascuno con il suo stato (OK, Errore, Disattivo…) e la prossima esecuzione.</p>
-<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro).</p>` },
+<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro). Ogni colore viene scelto in automatico; per cambiarlo apri <em>Impostazioni → Generale → Categorie e colori</em>, clicca il suo riquadro colore, oppure ↺ per tornare a quello automatico.</p>` },
 
     { title: 'Impostazioni', html: `
 <table>
