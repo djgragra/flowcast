@@ -257,6 +257,16 @@ async function runShow(showId, force = false, dryRun = false) {
   updateTrayMenu();
   if (mainWindow) mainWindow.webContents.send('show-triggered', { id: showId });
 
+  // Watchdog: if the run gets stuck (e.g. FTP hangs mid-transfer), reset status
+  // after 30 min so future cron ticks are not permanently blocked.
+  const watchdog = setTimeout(() => {
+    if (_runStatus.get(showId) === 'running') {
+      logLine(showId, '[watchdog] Run exceeded 30 min — forcing status reset');
+      notifyStatus(showId, 'error');
+      updateTrayMenu();
+    }
+  }, 30 * 60 * 1000);
+
   const logFn      = line => logLine(showId, line);
   const progressFn = s    => notifyStatus(showId, s === 'start' ? 'running' : s);
   const settings   = store.getSettings();
@@ -373,6 +383,8 @@ async function runShow(showId, force = false, dryRun = false) {
     if (!dryRun) {
       sendAlerts(show, 'error', { message: e.message });
     }
+  } finally {
+    clearTimeout(watchdog);
   }
 }
 
@@ -464,6 +476,25 @@ function checkMissedRuns() {
       runShow(show.id, false, false);
     }, 8000 + i * 3000);
   });
+}
+
+// ── Live schedule check: safety net in case node-cron misses a tick ──────────
+// Runs every 2 min; re-triggers any show whose scheduled time has passed today
+// but hasn't run yet (and isn't currently running).
+
+function startLiveScheduleCheck() {
+  setInterval(() => {
+    const shows = store.getShows().filter(s => s.enabled !== false && s.mode !== 'manual');
+    for (const show of shows) {
+      if (!isWithinScheduleRange(show)) continue;
+      if (!isTodayScheduled(show))      continue;
+      if (!scheduledTimePassed(show))   continue;
+      if (ranToday(show))               continue;
+      if (_runStatus.get(show.id) === 'running') continue;
+      logLine(show.id, '[live-check] Esecuzione riavviata (tick perso)');
+      runShow(show.id);
+    }
+  }, 2 * 60 * 1000);
 }
 
 // ── IPC handlers ──────────────────────────────────────────────────────────────
@@ -840,6 +871,7 @@ app.whenReady().then(() => {
   }
   setupSchedulers();
   checkMissedRuns();
+  startLiveScheduleCheck();
   scheduleUpdateChecks();
 });
 
