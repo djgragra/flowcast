@@ -82,5 +82,10 @@
   "tg.test_message": "✅ FlowCast: las alertas de Telegram funcionan.",
   "tg.test_ok": "Mensaje de prueba enviado ✓",
   "tg.no_recipients": "Ningún destinatario",
-  "tg.send_failed": "No enviado a: {list}"
+  "tg.send_failed": "No enviado a: {list}",
+  "mail.incomplete": "El correo no está configurado: hacen falta un servidor SMTP, un remitente (o usuario) y al menos un destinatario válido.",
+  "mail.rejected": "{list}: rechazado por el servidor",
+  "mail.failed": "Correo: ",
+  "upd.alert_subject": "FlowCast {v} está disponible",
+  "upd.alert_body": "Hay una nueva versión de FlowCast: {v} (instalada: {cur})."
 }

@@ -3,6 +3,8 @@ const fs   = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { dateLocale } = require('./i18n');
+const { PLAIN_BOX, sealData, openData } = require('./secrets');
+const { parseRecipients } = require('./notify');
 
 const DATA_DIR    = app.getPath('userData');
 const DATA_FILE   = path.join(DATA_DIR, 'data.json');
@@ -29,6 +31,7 @@ const DEFAULTS = {
     autostart:   false,
     startHidden: false,
     checkUpdates:    true,
+    updateAlert:     true,
     telegram: { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false },
     updateRepo:      'djgragra/flowcast',
     updateDismissed: '',
@@ -36,7 +39,7 @@ const DEFAULTS = {
       enabled:              false,
       smtp: { host: '', port: 587, user: '', password: '', secure: false },
       from:                 '',
-      recipients:           '',
+      recipients:           [],
       onError:              true,
       onNoUpdate:           false,
       noUpdateStreakThreshold: 3
@@ -46,6 +49,14 @@ const DEFAULTS = {
 };
 
 let _data = null;
+
+// Passwords and tokens are encrypted on disk when the system keystore allows it (src/secrets.js).
+// Everywhere else in the app they are plain text.
+let _box = PLAIN_BOX;
+let _secretStatus = { unreadable: 0, plain: 0 };
+function setSecretBox(box) { _box = box || PLAIN_BOX; }
+function secretsEncrypted() { return !!_box.available(); }
+function getSecretStatus() { return { ..._secretStatus, encrypted: secretsEncrypted() }; }
 
 // ── Settings migration ────────────────────────────────────────────────────────
 // Defaults only apply to a new data.json, and imported backups may carry values from
@@ -60,6 +71,11 @@ function normalizeSettings(settings) {
     settings.updateRepo = UPDATE_REPO;
   }
   if (typeof settings.checkUpdates !== 'boolean') settings.checkUpdates = true;
+  if (typeof settings.updateAlert !== 'boolean') settings.updateAlert = true;
+  // Email: older versions kept up to three addresses in one text, one per line
+  if (!settings.email || typeof settings.email !== 'object') settings.email = JSON.parse(JSON.stringify(DEFAULTS.settings.email));
+  if (!settings.email.smtp || typeof settings.email.smtp !== 'object') settings.email.smtp = { ...DEFAULTS.settings.email.smtp };
+  settings.email.recipients = parseRecipients(settings.email.recipients);
   if (typeof settings.updateDismissed !== 'string') settings.updateDismissed = '';
   if (!settings.telegram || typeof settings.telegram !== 'object') {
     settings.telegram = { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false };
@@ -93,15 +109,20 @@ function load() {
   } catch(e) {
     _data = JSON.parse(JSON.stringify(DEFAULTS));
   }
+  _secretStatus = openData(_data, _box);
   const before = JSON.stringify(_data.settings);
   normalizeSettings(_data.settings);
-  if (JSON.stringify(_data.settings) !== before) save();
+  // settings changed by the migration, or secrets still stored in plain text that can now be encrypted
+  if (JSON.stringify(_data.settings) !== before || (_secretStatus.plain > 0 && _box.available())) save();
   return _data;
 }
 
 function save() {
   ensureDirs();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(_data, null, 2), 'utf-8');
+  // written under a temporary name and renamed: a crash never leaves a half-written data.json
+  const tmp = DATA_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(sealData(_data, _box), null, 2), { encoding: 'utf-8', mode: 0o600 });
+  fs.renameSync(tmp, DATA_FILE);
 }
 
 function getData() {
@@ -241,7 +262,7 @@ function deleteFtpBookmark(id) {
 }
 
 module.exports = {
-  load, save, getData,
+  load, save, getData, setSecretBox, secretsEncrypted, getSecretStatus,
   getSettings, saveSettings,
   getShows, getShow, saveShow, deleteShow,
   getShowWorkDir,

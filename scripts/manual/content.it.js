@@ -149,7 +149,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li><strong>su errore</strong>: quando uno show fallisce, oppure fallisce un upload, una copia o l'archiviazione;</li>
 <li><strong>se il file non è aggiornato</strong>: dopo 3 esecuzioni consecutive senza file sorgente nuovi — segno che il sistema a monte ha smesso di produrli.</li>
 </ul>
-<p>Imposta server SMTP, porta, utente, password, mittente e fino a tre destinatari, poi premi <strong>📧 Testa SMTP</strong>.</p>
+<p>Imposta server SMTP, porta, utente, password, mittente e i destinatari (più indirizzi separati da virgole), poi premi <strong>📧 Testa SMTP</strong>. Tutti i destinatari ricevono <strong>un solo</strong> messaggio, con ogni indirizzo in Bcc: non vedono gli altri. Con un utente SMTP la connessione deve essere cifrata (STARTTLS, oppure SSL/TLS fin dall'inizio sulla porta 465): FlowCast non invia mai la password in chiaro. Ogni avviso viene provato subito, poi dopo 10 secondi e dopo 60 secondi; dopo un riavvio FlowCast ricorda quali avvisi ha già inviato. Password e token non compaiono mai nei messaggi di errore né nei log.</p>
 {{shot:settings-email}}
 <p><strong>Certificati.</strong> FlowCast verifica il certificato del server di posta, e il nome del server deve corrispondere. Molti provider usano per il server SMTP un nome diverso dal tuo dominio: usa il nome indicato dal tuo provider. <em>Consenti certificati self-signed</em> serve solo per server interni di cui ti fidi.</p>
 <h3>Telegram</h3>
@@ -183,7 +183,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 </ul>
 {{shot:timeline}}
 <p>Sotto i pulsanti di navigazione la barra laterale elenca le <strong>prossime produzioni in coda</strong>; la prima è evidenziata. Sotto ci sono gli show, ciascuno con il suo stato (OK, Errore, Disattivo…) e la prossima esecuzione.</p>
-<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro). Ogni colore viene scelto in automatico; per cambiarlo apri <em>Impostazioni → Generale → Categorie e colori</em>, clicca il suo riquadro colore, oppure ↺ per tornare a quello automatico.</p>` },
+<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro). Ogni colore viene scelto in automatico; per cambiarlo apri <em>Impostazioni → Generale → Categorie e colori</em>, clicca il suo riquadro colore. I pulsanti a destra di ogni riga riportano il colore all'automatico, rinominano la categoria in tutti i suoi show (se il nuovo nome esiste già le due categorie si uniscono) oppure la eliminano: scegli dove spostare i suoi show (un'altra categoria o <em>Senza categoria</em>).</p>` },
 
     { title: 'Impostazioni', html: `
 <table>
@@ -209,18 +209,18 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li>Premi <strong>Chiudi e installa</strong>: FlowCast si chiude e parte l'installer. Segui la procedura come per la prima installazione.</li>
 </ol>
 <p><strong>Ignora questa versione</strong> nasconde la barra finché non esce una versione successiva. Niente viene installato finché non premi il pulsante; se il download non riesce, <strong>Apri pagina di download</strong> apre la release su GitHub.</p>
-<p>In <em>Impostazioni → Info → Aggiornamenti</em> puoi controllare a mano o disattivare il controllo automatico.</p>
+<p>In <em>Impostazioni → Info → Aggiornamenti</em> puoi controllare a mano o disattivare il controllo automatico. Se email o Telegram sono attivi, FlowCast ti avvisa di una nuova versione anche lì (e con una notifica sul desktop), <strong>una volta per versione</strong>; si disattiva con <em>Avvisami di una nuova versione…</em>. Se il messaggio non arriva, viene riprovato al controllo successivo.</p>
 {{shot:settings-info}}
 <p>Show e impostazioni restano. Il pulsante <strong>📖 Manuale utente (PDF)</strong> (nella Guida e in <em>Impostazioni → Info</em>) apre questo manuale per la versione installata.</p>` },
 
     { title: 'Backup e trasferimento su un altro PC', html: `
 <p>In <em>Impostazioni → Backup</em>:</p>
 <ul>
-<li><strong>💾 Esporta tutto</strong> salva show, impostazioni e bookmark FTP in un file JSON;</li>
+<li><strong>💾 Esporta tutto</strong> salva show, impostazioni e bookmark FTP in un file JSON. La casella <strong>Includi password e token</strong> è spenta di default: il file allora non contiene password né token. Se la accendi compare un avviso rosso e i segreti vengono scritti in chiaro;</li>
 <li><strong>📥 Importa</strong> carica un backup: <em>OK</em> sostituisce tutto, <em>Annulla</em> aggiunge solo gli show mancanti.</li>
 </ul>
 <p>Per spostare FlowCast: esporta sul vecchio PC, installa FlowCast sul nuovo, importa. Esporta un backup prima di ogni aggiornamento.</p>
-<div class="note"><strong>Il backup contiene le password FTP e SMTP in chiaro.</strong> Conservalo in un posto sicuro e cancella le copie che non servono più.</div>` },
+<div class="note"><strong>Un backup fatto senza la casella non contiene password né token:</strong> dopo l'importazione FlowCast elenca cosa va reinserito (password SMTP, token Telegram, password FTP); i segreti già presenti su questo PC per lo stesso server e utente restano. Se accendi la casella, il file li contiene in chiaro: conservalo in un posto sicuro e cancella le copie che non servono più. Su questo PC password e token sono salvati cifrati con il portachiavi di sistema.</div>` },
 
     { title: 'File e log', html: `
 <p>La cartella dati è <code>%APPDATA%\\flowcast</code> su Windows, <code>~/Library/Application Support/flowcast</code> su macOS e <code>~/.config/flowcast</code> su Linux; <em>Impostazioni → Info</em> mostra il percorso esatto.</p>

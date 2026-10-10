@@ -57,7 +57,7 @@ function demoData() {
     outputFolder: '', clearOutput: false,
     schedule: { time, freq, days, startDate: '2026-09-01', endDate: null },
     ftp: { ...ftp, remotePath: '/' + slug.replace(/-/g, '_') },
-    lastRun: now, lastResult: 'ok', lastDetails: ok, noUpdateStreak: 0, ...extra
+    lastRun: now, lastResult: 'ok', lastDetails: ok, ...extra
   });
   return {
     settings: {
@@ -67,7 +67,7 @@ function demoData() {
       email: {
         enabled: true,
         smtp: { host: 'smtp.example.com', port: 587, user: 'alerts@example.com', password: 'demo-password', secure: false, allowSelfSigned: false },
-        from: 'alerts@example.com', recipients: 'producer@example.com\nengineer@example.com',
+        from: 'alerts@example.com', recipients: ['producer@example.com', 'engineer@example.com'],
         onError: true, onNoUpdate: true, noUpdateStreakThreshold: 3
       }
     },
@@ -76,7 +76,7 @@ function demoData() {
       show('demo-jazz',    'Jazz Corner',    'jazz-corner',    '21:10', 'specific', ['SAT'], ['Music\\jazz_1.wav', 'Music\\jazz_2.wav']),
       show('demo-tech',    'Tech Weekly',    'tech-weekly',    '13:10', 'specific', ['FRI'], ['Talk\\tech_1.wav', 'Talk\\tech_2.wav', 'Talk\\tech_3.wav']),
       show('demo-sport',   'Sports Roundup', 'sports-roundup', '17:10', 'weekdays', [], ['Sport\\roundup.wav'],
-           { lastResult: 'no-update', lastDetails: null, noUpdateStreak: 1 }),
+           { lastResult: 'no-update', lastDetails: null }),
       show('demo-city',    'City Talk',      'city-talk',      '11:10', 'daily',    [], ['Talk\\city.wav'],
            { lastResult: 'error', lastDetails: { ftp: 'error', archive: 'ok', local: 'skipped' } }),
       show('demo-summer',  'Summer Nights',  'summer-nights',  '23:10', 'weekend',  [], ['Music\\summer.wav'],

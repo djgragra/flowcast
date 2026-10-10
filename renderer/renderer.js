@@ -1174,6 +1174,7 @@ function openSettings(section) {
   document.getElementById('s-autostart').checked     = !!_settings.autostart;
   document.getElementById('s-start-hidden').checked  = !!_settings.startHidden;
   document.getElementById('s-check-updates').checked = _settings.checkUpdates !== false;
+  document.getElementById('s-update-alert').checked  = _settings.updateAlert !== false;
   // Keep showing a download in progress or ready; otherwise start clean
   if (!['downloading', 'ready', 'error'].includes(_updateState)) {
     document.getElementById('update-check-result').textContent = '';
@@ -1198,10 +1199,9 @@ function openSettings(section) {
   document.getElementById('s-tg-on-noupdate').checked = !!tg.onNoUpdate;
   document.getElementById('telegram-test-result').textContent = '';
   renderCategoryColors();
-  const recips = (em.recipients || '').split('\n').filter(Boolean);
-  document.getElementById('s-email-recip-1').value = recips[0] || '';
-  document.getElementById('s-email-recip-2').value = recips[1] || '';
-  document.getElementById('s-email-recip-3').value = recips[2] || '';
+  document.getElementById('s-email-recipients').value = (em.recipients || []).join(', ');
+  refreshUpdateAlertToggle();
+  api.getPlatform().then(p => document.getElementById('secrets-warning').classList.toggle('hidden', p.secretsEncrypted !== false));
   document.getElementById('s-email-on-error').checked    = em.onError !== false;
   document.getElementById('s-email-on-noupdate').checked = !!em.onNoUpdate;
   document.getElementById('email-test-result').textContent = '';
@@ -1224,6 +1224,19 @@ function switchSettingsSection(section) {
   if (section === 'ftp') refreshSettingsFtpSection();
 }
 
+// Addresses typed in the Recipients field (commas, semicolons, spaces or new lines)
+function typedRecipients() {
+  return document.getElementById('s-email-recipients').value.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+}
+
+// The "new version" notice needs a channel: Telegram or email switched on
+function refreshUpdateAlertToggle() {
+  const on = document.getElementById('s-email-enabled').checked || document.getElementById('s-tg-enabled').checked;
+  document.getElementById('s-update-alert').disabled = !on;
+}
+document.getElementById('s-email-enabled').addEventListener('change', refreshUpdateAlertToggle);
+document.getElementById('s-tg-enabled').addEventListener('change', refreshUpdateAlertToggle);
+
 async function saveSettings() {
   _settings = {
     baseWav:     document.getElementById('s-base-wav').value.trim(),
@@ -1233,6 +1246,7 @@ async function saveSettings() {
     autostart:   document.getElementById('s-autostart').checked,
     startHidden: document.getElementById('s-start-hidden').checked,
     checkUpdates:    document.getElementById('s-check-updates').checked,
+    updateAlert:     document.getElementById('s-update-alert').checked,
     telegram:        readTelegramForm(),
     updateDismissed: _settings.updateDismissed || '',
     theme:       _settings.theme || 'dark',
@@ -1249,17 +1263,23 @@ async function saveSettings() {
         allowSelfSigned: document.getElementById('s-smtp-selfsigned').checked
       },
       from:         document.getElementById('s-smtp-from').value.trim(),
-      recipients:   [
-        document.getElementById('s-email-recip-1').value.trim(),
-        document.getElementById('s-email-recip-2').value.trim(),
-        document.getElementById('s-email-recip-3').value.trim()
-      ].filter(Boolean).join('\n'),
+      recipients:   typedRecipients(),
       onError:      document.getElementById('s-email-on-error').checked,
       onNoUpdate:   document.getElementById('s-email-on-noupdate').checked,
       noUpdateStreakThreshold: 3
     }
   };
   await api.saveSettings(_settings);
+  // show what was kept: the main process drops entries that are not valid addresses
+  const typed = typedRecipients();
+  _settings = await api.getSettings();
+  const kept = (_settings.email && _settings.email.recipients) || [];
+  document.getElementById('s-email-recipients').value = kept.join(', ');
+  const emailRes = document.getElementById('email-test-result');
+  if (kept.length < new Set(typed.map(x => x.toLowerCase())).size) {
+    emailRes.style.color = 'var(--red)';
+    emailRes.textContent = t('set.recip.dropped');
+  }
   applyTheme(_settings.theme);
   i18n.load(_settings.language || 'en');
   i18n.applyI18n();
@@ -1414,7 +1434,7 @@ async function exportConfig() {
   const status = document.getElementById('backup-status');
   status.style.color = 'var(--muted)';
   status.textContent = t('cfg.exporting');
-  const ok = await api.exportConfig();
+  const ok = await api.exportConfig(document.getElementById('s-export-secrets').checked);
   if (ok) {
     status.style.color = 'var(--green)';
     status.textContent = t('cfg.exported');
@@ -1426,6 +1446,8 @@ async function exportConfig() {
 
 async function importConfig() {
   const status = document.getElementById('backup-status');
+  const missingBox = document.getElementById('import-missing');
+  missingBox.classList.add('hidden');
   const data = await api.importConfig();
   if (!data) return;
   if (data.error) {
@@ -1437,30 +1459,20 @@ async function importConfig() {
   const showCount = (data.shows || []).length;
   const replace = confirm(t('confirm.import', { shows: showCount, bm: (data.ftpBookmarks||[]).length }));
 
-  if (replace) {
-    for (const show of (data.shows || []))        await api.saveShow(show);
-    for (const bm   of (data.ftpBookmarks || []))  await api.saveFtpBookmark(bm);
-    if (data.settings) await api.saveSettings(data.settings);
-    _settings = await api.getSettings();
-    _shows    = await api.getShows();
-  } else {
-    const existingIds = new Set(_shows.map(s => s.id));
-    const toAdd = (data.shows || []).filter(s => !existingIds.has(s.id));
-    for (const show of toAdd) {
-      await api.saveShow(show);
-      _shows.push(show);
-    }
-    status.style.color = 'var(--green)';
-    status.textContent = t('cfg.added', { n: toAdd.length });
-    setTimeout(() => { status.textContent = ''; }, 3000);
-  }
+  // The main process merges the file with what this PC has: a password the file does not carry is
+  // kept (same server and user); the ones still empty come back in "missing".
+  const res = await api.applyImport(data, replace);
+  _settings = await api.getSettings();
+  _shows    = await api.getShows();
 
   renderSidebar();
   renderShowsGrid();
-  if (replace) {
-    status.style.color = 'var(--green)';
-    status.textContent = t('cfg.imported', { n: showCount });
-    setTimeout(() => { status.textContent = ''; }, 3000);
+  status.style.color = 'var(--green)';
+  status.textContent = replace ? t('cfg.imported', { n: res.shows }) : t('cfg.added', { n: res.shows });
+  setTimeout(() => { status.textContent = ''; }, 3000);
+  if (res.missing && res.missing.length) {
+    missingBox.textContent = t('cfg.missing', { list: res.missing.map(m => t('cfg.kind.' + m.kind, { label: m.label })).join('; ') });
+    missingBox.classList.remove('hidden');
   }
 }
 
@@ -1719,6 +1731,8 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
 
 // Backup
 document.getElementById('btn-export-config').addEventListener('click', exportConfig);
+document.getElementById('s-export-secrets').addEventListener('change', e =>
+  document.getElementById('export-secrets-warn').classList.toggle('hidden', !e.target.checked));
 document.getElementById('btn-import-config').addEventListener('click', importConfig);
 
 // Sidebar toggle

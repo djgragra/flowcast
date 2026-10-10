@@ -2,6 +2,7 @@
 const ftp  = require('basic-ftp');
 const path = require('path');
 const { t } = require('./i18n');
+const { maskSecrets } = require('./secrets');
 
 const MAX_RETRIES    = 3;
 const RETRY_DELAY_MS = 8000; // 8s, 16s between retries
@@ -47,8 +48,9 @@ async function upload(ftpConfig, localFilePath, logFn, timeoutMs) {
     try {
       return await attemptUpload(ftpConfig, localFilePath, logFn, timeoutMs);
     } catch(e) {
-      lastError = e;
-      logFn(t('ftp.attempt_failed', { attempt, max: MAX_RETRIES, error: e.message }));
+      // the password must never reach a log line or a message
+      lastError = new Error(maskSecrets(e.message, [ftpConfig.password]));
+      logFn(t('ftp.attempt_failed', { attempt, max: MAX_RETRIES, error: lastError.message }));
     }
   }
   logFn(t('ftp.final_error', { max: MAX_RETRIES, error: lastError.message }));
@@ -68,7 +70,7 @@ async function testConnection(ftpConfig, timeoutMs) {
     const list = await client.list();
     return { success: true, message: t('ftp.test_ok', { n: list.length }) };
   } catch(e) {
-    return { success: false, message: e.message };
+    return { success: false, message: maskSecrets(e.message, [ftpConfig.password]) };
   } finally {
     client.close();
   }

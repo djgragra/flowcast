@@ -149,7 +149,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <li><strong>on error</strong>: when a show fails, or an upload, copy or archive step fails;</li>
 <li><strong>if the file is not updated</strong>: after 3 consecutive runs without new source files — a sign that the upstream system stopped producing them.</li>
 </ul>
-<p>Set the SMTP server, port, user, password, sender and up to three recipients, then press <strong>📧 Test SMTP</strong>.</p>
+<p>Set the SMTP server, port, user, password, sender and the recipients (several addresses separated by commas), then press <strong>📧 Test SMTP</strong>. All recipients get <strong>one</strong> message, with every address in Bcc: they do not see each other. With an SMTP user name the connection must be encrypted (STARTTLS, or SSL/TLS from the start on port 465): FlowCast never sends the password in clear text. Each alert is tried right away, again after 10 seconds and again after 60 seconds; after a restart FlowCast remembers which alerts it already sent. Passwords and tokens never appear in error messages or logs.</p>
 {{shot:settings-email}}
 <p><strong>Certificates.</strong> FlowCast checks the certificate of the mail server, and the server name must match it. Many providers use a different name for their SMTP server than your own domain: use the name given by your provider. <em>Allow self-signed certificates</em> is meant only for internal servers you trust.</p>
 <h3>Telegram</h3>
@@ -183,7 +183,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 </ul>
 {{shot:timeline}}
 <p>Under the navigation buttons the sidebar lists the <strong>next productions in the queue</strong>; the first one is highlighted. Below it are the shows, each with its status (OK, Error, Off…) and next run.</p>
-<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch, or ↺ to go back to automatic.</p>` },
+<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch. The buttons on the right of each row reset the colour to automatic, rename the category in all its shows (if the new name already exists the two are merged) or delete it: you choose where its shows move (another category or <em>No category</em>).</p>` },
 
     { title: 'Settings', html: `
 <table>
@@ -209,18 +209,18 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <li>Press <strong>Close and install</strong>: FlowCast closes and the installer starts. Follow the wizard as for the first installation.</li>
 </ol>
 <p><strong>Ignore this version</strong> hides the bar until a newer version is released. Nothing is installed until you press the button; if the download fails, <strong>Open download page</strong> opens the release on GitHub.</p>
-<p>In <em>Settings → Info → Updates</em> you can check manually or turn the automatic check off.</p>
+<p>In <em>Settings → Info → Updates</em> you can check manually or turn the automatic check off. If email or Telegram is switched on, FlowCast also tells you about a new version there (and with a desktop notification), <strong>once per version</strong>; you can turn this off with <em>Tell me about a new version…</em>. If the message cannot be delivered, it is tried again at the next check.</p>
 {{shot:settings-info}}
 <p>Shows and settings are kept. The <strong>📖 User manual (PDF)</strong> button (in the Guide and in <em>Settings → Info</em>) opens this manual for the installed version.</p>` },
 
     { title: 'Backup and moving to another PC', html: `
 <p>In <em>Settings → Backup</em>:</p>
 <ul>
-<li><strong>💾 Export all</strong> saves shows, settings and FTP bookmarks to a JSON file;</li>
+<li><strong>💾 Export all</strong> saves shows, settings and FTP bookmarks to a JSON file. The box <strong>Include passwords and tokens</strong> is off by default: the file then has no passwords or tokens. Ticked, a red warning appears and the secrets are written in plain text;</li>
 <li><strong>📥 Import</strong> loads a backup: <em>OK</em> replaces everything, <em>Cancel</em> adds only the shows that are missing.</li>
 </ul>
 <p>To move FlowCast: export on the old PC, install FlowCast on the new one, import. Export a backup before every update.</p>
-<div class="note"><strong>The backup contains FTP and SMTP passwords in plain text.</strong> Keep it in a safe place and delete copies you no longer need.</div>` },
+<div class="note"><strong>A backup made without the box has no passwords or tokens:</strong> after importing it, FlowCast lists what you must type again (SMTP password, Telegram token, FTP passwords); secrets already on this PC for the same server and user are kept. If you tick the box, the file contains them in plain text: keep it in a safe place and delete copies you no longer need. On this PC, passwords and tokens are saved encrypted with the system keystore.</div>` },
 
     { title: 'Files and logs', html: `
 <p>The data folder is <code>%APPDATA%\\flowcast</code> on Windows, <code>~/Library/Application Support/flowcast</code> on macOS and <code>~/.config/flowcast</code> on Linux; <em>Settings → Info</em> shows the exact path.</p>

@@ -603,6 +603,10 @@
               <label data-i18n="set.smtp.from.label">Sender address (optional)</label>
               <input type="text" id="s-smtp-from" data-i18n-placeholder="set.smtp.from.ph">
             </div>
+            <div class="field">
+              <label data-i18n="set.recip.label">Recipients (separate several with commas)</label>
+              <input type="text" id="s-email-recipients" placeholder="alerts@example.com, engineer@example.com" spellcheck="false">
+            </div>
             <div class="cb-row" style="margin-bottom:12px">
               <input type="checkbox" id="s-smtp-secure">
               <label for="s-smtp-secure" data-i18n="set.smtp.secure.label">Use SSL/TLS (port 465)</label>
@@ -611,12 +615,8 @@
               <input type="checkbox" id="s-smtp-selfsigned">
               <label for="s-smtp-selfsigned" data-i18n="set.smtp.selfsigned.label">Allow self-signed certificates (not recommended)</label>
             </div>
-            <div class="field">
-              <label data-i18n="set.recip.label">Recipients</label>
-              <input type="email" id="s-email-recip-1" placeholder="alerts1@example.com" style="margin-bottom:6px">
-              <input type="email" id="s-email-recip-2" placeholder="alerts2@example.com" style="margin-bottom:6px">
-              <input type="email" id="s-email-recip-3" placeholder="alerts3@example.com">
-            </div>
+            <div class="note" style="margin-bottom:10px" data-i18n="set.email.note">With a user name the connection must be encrypted. All recipients get the same message and do not see each other.</div>
+            <div class="note hidden" id="secrets-warning" style="margin-bottom:10px;color:var(--warn)" data-i18n="set.secrets.nokeystore">⚠ This system has no keystore: passwords and tokens are saved without encryption.</div>
             <div style="display:flex;gap:20px;margin-bottom:10px;flex-wrap:wrap">
               <div class="cb-row">
                 <input type="checkbox" id="s-email-on-error" checked>
@@ -632,7 +632,7 @@
               <span id="email-test-result" style="font-size:12px;color:var(--muted)"></span>
             </div>
           </div>
-          <div class="form-section">
+          <div class="form-section" style="margin-top:36px;padding-top:24px;border-top:1px solid var(--border)">
             <h3 data-i18n="set.tg.title">Telegram alerts</h3>
             <div class="cb-row" style="margin-bottom:12px">
               <label class="toggle"><input type="checkbox" id="s-tg-enabled"><span class="toggle-slider"></span></label>
@@ -686,12 +686,18 @@
       <div class="set-section" id="set-backup">
         <div class="form-section">
           <h3 data-i18n="set.backup.title">Configuration backup</h3>
+          <div class="cb-row" style="margin-bottom:10px">
+            <input type="checkbox" id="s-export-secrets">
+            <label for="s-export-secrets" data-i18n="set.backup.secrets">Include passwords and tokens</label>
+          </div>
+          <div class="note hidden" id="export-secrets-warn" style="margin-bottom:12px;color:var(--red)" data-i18n="set.backup.secrets_warn">The file will contain passwords and tokens in plain text. Keep it somewhere safe and do not share it.</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <button class="btn btn-muted" id="btn-export-config" data-i18n="set.export">💾 Export all</button>
             <button class="btn btn-muted" id="btn-import-config" data-i18n="set.import">📥 Import</button>
             <span id="backup-status" style="font-size:12px;color:var(--muted)"></span>
           </div>
           <div class="note" style="margin-top:8px" data-i18n="set.backup.note">Export/import shows, settings and FTP bookmarks.</div>
+          <div class="note hidden" id="import-missing" style="margin-top:8px;color:var(--warn)"></div>
         </div>
       </div>
 
@@ -702,6 +708,10 @@
           <div class="cb-row" style="margin-bottom:10px">
             <label class="toggle"><input type="checkbox" id="s-check-updates"><span class="toggle-slider"></span></label>
             <label for="s-check-updates" data-i18n="set.upd.auto">Check for new versions automatically (at startup and every 24 hours)</label>
+          </div>
+          <div class="cb-row" style="margin-bottom:10px">
+            <label class="toggle"><input type="checkbox" id="s-update-alert"><span class="toggle-slider"></span></label>
+            <label for="s-update-alert" data-i18n="set.upd.alert">Tell me about a new version on desktop, Telegram and email (once per version; needs Telegram or email switched on)</label>
           </div>
           <div class="note" style="margin-bottom:10px"><span data-i18n="set.upd.installed">Installed version:</span> <strong id="s-upd-current"></strong></div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
