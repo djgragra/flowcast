@@ -506,7 +506,7 @@ window.LOCALES.it = {
   'st.by_category': 'Per categoria',
   'st.cat_count': '{on}/{n} attivi',
   'set.cat.title': 'Categorie e colori',
-  'set.cat.note': 'Ogni categoria ha un colore assegnato in automatico, usato nell\'elenco degli show, nel Palinsesto e nelle etichette. Cliccalo per sceglierne un altro, ↺ lo riporta all\'automatico, ✎ rinomina la categoria in tutti i suoi show, 🗑 la elimina (i suoi show passano a un\'altra categoria o a “Senza categoria”).',
+  'set.cat.note': 'Ogni categoria ha un colore assegnato in automatico, usato nell\'elenco degli show, nel Palinsesto e nelle etichette. Clicca il colore per sceglierne un altro. I pulsanti a destra lo riportano all\'automatico, rinominano la categoria in tutti i suoi show, oppure la eliminano (i suoi show passano a un\'altra categoria o a “Senza categoria”).',
   'set.cat.empty': 'Nessuna categoria: assegnane una a uno show dal campo "Categoria".',
   'set.cat.pick': 'Cambia colore',
   'set.cat.count': '{n} show',

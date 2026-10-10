@@ -506,7 +506,7 @@ window.LOCALES.es = {
   'st.by_category': 'Por categoría',
   'st.cat_count': '{on}/{n} activos',
   'set.cat.title': 'Categorías y colores',
-  'set.cat.note': 'Cada categoría recibe un color automático, usado en la lista de programas, el Calendario y las etiquetas. Haz clic para elegir otro, ↺ lo devuelve al automático, ✎ cambia el nombre de la categoría en todos sus programas, 🗑 la elimina (sus programas pasan a otra categoría o a “Sin categoría”).',
+  'set.cat.note': 'Cada categoría recibe un color automático, usado en la lista de programas, el Calendario y las etiquetas. Haz clic en el color para elegir otro. Los botones de la derecha lo devuelven al automático, cambian el nombre de la categoría en todos sus programas o la eliminan (sus programas pasan a otra categoría o a “Sin categoría”).',
   'set.cat.empty': 'Sin categorías: asigna una a un programa desde el campo "Categoría".',
   'set.cat.pick': 'Cambiar color',
   'set.cat.count': '{n} programas',

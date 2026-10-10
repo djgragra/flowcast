@@ -10,7 +10,7 @@ Versions use `YY.M.N`. Newest first.
 - **Backups**: the export has a box **Include passwords and tokens**, off by default. Off, the file has no passwords or tokens; on, a red warning is shown and they are written in plain text. After an import without them FlowCast lists what must be typed again and keeps what the PC already has for the same server and user. Older backups (with passwords) still import.
 - **Passwords and tokens are masked** (`***`) in error messages and logs: SMTP password, Telegram token (it is part of the Telegram address) and FTP passwords.
 - **New-version notice on desktop, Telegram and email**, once per version (Settings → Info → Updates; it needs Telegram or email switched on). A version is marked as announced only after the message was delivered, so a failed send is tried again at the next check.
-- **Categories**: ✎ renames a category in all its shows and keeps its colour; 🗑 deletes it and asks where to move its shows (another category or *No category*). Renaming into a name that already exists merges the two (Settings → General → Categories and colors).
+- **Categories**: a new button renames a category in all its shows and keeps its colour; another deletes it and asks where to move its shows (another category or *No category*). Renaming into a name that already exists merges the two (Settings → General → Categories and colors).
 - The Telegram text always says it comes from FlowCast, for bots shared with other programs.
 - Unit tests (`npm test`) run before every build.
 - Texts in English, Italian and Spanish (same keys in all three, checked by a test).

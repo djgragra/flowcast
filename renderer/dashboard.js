@@ -75,40 +75,53 @@ function categoryColor(name) {
 // rename (✎) and delete (🗑). Rename and delete open a small panel under the row.
 let _catEdit = null;   // { name, mode: 'rename' | 'delete' }
 
+// Line icons (same stroke as the text): the same size everywhere, unlike emoji
+const CAT_ICONS = {
+  reset:  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>',
+  rename: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  delete: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>'
+};
+
 function renderCategoryColors() {
   const el = document.getElementById('category-colors-list');
   if (!el) return;
   const cats = allCategories();
   if (!cats.length) { el.innerHTML = `<div class="hint">${t('set.cat.empty')}</div>`; return; }
   if (_catEdit && !cats.includes(_catEdit.name)) _catEdit = null;
-  el.innerHTML = cats.map(c => {
+  el.innerHTML = '<div class="cat-list">' + cats.map(c => {
     const n = _shows.filter(s => categoryOf(s) === c).length;
     const editing = _catEdit && _catEdit.name === c ? _catEdit.mode : '';
     let panel = '';
     if (editing === 'rename') {
       panel = `<div class="cat-edit">
-        <input type="text" class="cat-edit-input" value="${esc(c)}" data-cat-new="${esc(c)}">
+        <input type="text" class="cat-edit-input" value="${esc(c)}" data-cat-new="${esc(c)}" maxlength="60">
         <button type="button" class="btn btn-sm" data-cat-rename-ok="${esc(c)}">${t('set.cat.rename.ok')}</button>
         <button type="button" class="btn btn-sm btn-muted" data-cat-cancel>${t('set.cat.cancel')}</button>
       </div>`;
     } else if (editing === 'delete') {
       const others = cats.filter(x => x !== c).map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
       panel = `<div class="cat-edit">
-        <span class="hint">${t(n === 1 ? 'set.cat.delete.msg.one' : 'set.cat.delete.msg', { n, name: esc(c) })}</span>
+        <span class="cat-edit-msg">${t(n === 1 ? 'set.cat.delete.msg.one' : 'set.cat.delete.msg', { n, name: esc(c) })}</span>
         <select class="cat-edit-input" data-cat-move="${esc(c)}"><option value="">${t('cat.none')}</option>${others}</select>
         <button type="button" class="btn btn-sm btn-danger" data-cat-delete-ok="${esc(c)}">${t('set.cat.delete.ok')}</button>
         <button type="button" class="btn btn-sm btn-muted" data-cat-cancel>${t('set.cat.cancel')}</button>
       </div>`;
     }
-    return `<div class="cat-color-row">
-      <input type="color" value="${categoryColor(c)}" data-cat-color="${esc(c)}" title="${esc(t('set.cat.pick'))}">
-      <span class="cat-color-name">${esc(c)}</span>
-      <span class="hint">${t(n === 1 ? 'set.cat.count.one' : 'set.cat.count', { n })}</span>
-      <button type="button" class="btn btn-xs btn-ghost" data-cat-reset="${esc(c)}" title="${esc(t('set.cat.reset'))}">↺</button>
-      <button type="button" class="btn btn-xs btn-ghost" data-cat-rename="${esc(c)}" title="${esc(t('set.cat.rename'))}">✎</button>
-      <button type="button" class="btn btn-xs btn-ghost" data-cat-delete="${esc(c)}" title="${esc(t('set.cat.delete'))}">🗑</button>
-    </div>${panel}`;
-  }).join('');
+    return `<div class="cat-item${editing ? ' editing' : ''}">
+      <div class="cat-row">
+        <label class="cat-swatch" style="background:${categoryColor(c)}" title="${esc(t('set.cat.pick'))}">
+          <input type="color" value="${categoryColor(c)}" data-cat-color="${esc(c)}">
+        </label>
+        <span class="cat-name" title="${esc(c)}">${esc(c)}</span>
+        <span class="cat-count">${t(n === 1 ? 'set.cat.count.one' : 'set.cat.count', { n })}</span>
+        <span class="cat-actions">
+          <button type="button" class="cat-icon" data-cat-reset="${esc(c)}" title="${esc(t('set.cat.reset'))}" aria-label="${esc(t('set.cat.reset'))}">${CAT_ICONS.reset}</button>
+          <button type="button" class="cat-icon" data-cat-rename="${esc(c)}" title="${esc(t('set.cat.rename'))}" aria-label="${esc(t('set.cat.rename'))}">${CAT_ICONS.rename}</button>
+          <button type="button" class="cat-icon cat-icon-danger" data-cat-delete="${esc(c)}" title="${esc(t('set.cat.delete'))}" aria-label="${esc(t('set.cat.delete'))}">${CAT_ICONS.delete}</button>
+        </span>
+      </div>${panel}
+    </div>`;
+  }).join('') + '</div>';
   el.querySelectorAll('[data-cat-color]').forEach(input => {
     input.addEventListener('change', () => saveCategoryColor(input.dataset.catColor, input.value));
   });
@@ -126,9 +139,11 @@ function renderCategoryColors() {
   });
   el.querySelectorAll('[data-cat-rename-ok]').forEach(btn => {
     const from = btn.dataset.catRenameOk;
-    const run = () => renameCategoryUi(from, el.querySelector('[data-cat-new]').value);
+    const input = el.querySelector('[data-cat-new]');
+    const run = () => renameCategoryUi(from, input.value);
     btn.addEventListener('click', run);
-    el.querySelector('[data-cat-new]').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') run(); if (e.key === 'Escape') { _catEdit = null; renderCategoryColors(); } });
+    input.focus(); input.select();
   });
   el.querySelectorAll('[data-cat-delete-ok]').forEach(btn => {
     btn.addEventListener('click', () => deleteCategoryUi(btn.dataset.catDeleteOk, el.querySelector('[data-cat-move]').value));

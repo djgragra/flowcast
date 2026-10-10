@@ -183,7 +183,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 </ul>
 {{shot:timeline}}
 <p>Under the navigation buttons the sidebar lists the <strong>next productions in the queue</strong>; the first one is highlighted. Below it are the shows, each with its status (OK, Error, Off…) and next run.</p>
-<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch, or ↺ to go back to automatic. The ✎ button renames the category in all its shows (if the new name already exists the two are merged), 🗑 deletes it: you choose where its shows move (another category or <em>No category</em>).</p>` },
+<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch. The buttons on the right of each row reset the colour to automatic, rename the category in all its shows (if the new name already exists the two are merged) or delete it: you choose where its shows move (another category or <em>No category</em>).</p>` },
 
     { title: 'Settings', html: `
 <table>

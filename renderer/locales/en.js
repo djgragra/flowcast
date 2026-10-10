@@ -534,7 +534,7 @@ window.LOCALES.en = {
   'st.by_category': 'By category',
   'st.cat_count': '{on}/{n} enabled',
   'set.cat.title': 'Categories and colors',
-  'set.cat.note': 'Each category gets a colour automatically, used in the shows list, Schedule and labels. Click it to pick another one, ↺ resets it to automatic, ✎ renames the category in all its shows, 🗑 deletes it (its shows move to another category or to “No category”).',
+  'set.cat.note': 'Each category gets a colour automatically, used in the shows list, Schedule and labels. Click the colour to pick another one. The buttons on the right reset it to automatic, rename the category in all its shows, or delete it (its shows move to another category or to “No category”).',
   'set.cat.empty': 'No categories yet: assign one to a show from the "Category" field.',
   'set.cat.pick': 'Change colour',
   'set.cat.count': '{n} shows',
