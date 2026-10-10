@@ -68,8 +68,13 @@ contextBridge.exposeInMainWorld('api', {
   clearHistory:   (id) => ipcRenderer.invoke('clear-history', id),
 
   // Config export/import
-  exportConfig: ()     => ipcRenderer.invoke('export-config'),
+  exportConfig: (includeSecrets) => ipcRenderer.invoke('export-config', includeSecrets === true),
   importConfig: ()     => ipcRenderer.invoke('import-config'),
+  applyImport:  (data, replace) => ipcRenderer.invoke('apply-import', { data, replace }),
+
+  // Categories
+  renameCategory: (from, to)      => ipcRenderer.invoke('category-rename', { from, to }),
+  deleteCategory: (name, moveTo)  => ipcRenderer.invoke('category-delete', { name, moveTo }),
 
   // FTP bookmarks
   getFtpBookmarks:   ()    => ipcRenderer.invoke('get-ftp-bookmarks'),

@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, Notification, safeStorage } = require('electron');
 const path           = require('path');
 const fs             = require('fs');
 // Development only: `npm run manual` renders the PDF manual with screenshots of the app.
@@ -12,12 +12,15 @@ const store          = require('./src/store');
 const scheduler      = require('./src/scheduler');
 const processor      = require('./src/processor');
 const ftpClient      = require('./src/ftp-client');
-const emailNotifier  = require('./src/email-notifier');
+const notify         = require('./src/notify');
+const backup         = require('./src/backup');
+const categories     = require('./src/categories');
+const { createSecretBox, maskSecrets } = require('./src/secrets');
+const { createAlertState } = require('./src/alert-state');
 const i18n           = require('./src/i18n');
 const { resolveFfmpeg } = require('./src/ffmpeg-path');
 const updater        = require('./src/updater');
 const stats          = require('./src/stats');
-const telegram       = require('./src/telegram');
 const { execFile }   = require('child_process');
 
 // ── Main-process i18n ─────────────────────────────────────────────────────────
@@ -77,6 +80,11 @@ const START_HIDDEN = process.argv.includes('--hidden') ||
 
 let mainWindow = null;
 let tray       = null;
+
+// Alerts (email, Telegram, new-version notice) and what they remember across restarts.
+// Created once the store is loaded, in app.whenReady.
+let alertState = null;
+let alerter    = null;
 
 // ── Window ────────────────────────────────────────────────────────────────────
 
@@ -295,16 +303,8 @@ async function runShow(showId, force = false, dryRun = false) {
       local:   result.localResult   || 'skipped'
     } : null;
 
-    // Track no-update streak for email alerts
-    let noUpdateStreak = show.noUpdateStreak || 0;
-    if (result.action === 'no-update') {
-      noUpdateStreak++;
-    } else {
-      noUpdateStreak = 0;
-    }
-
     const now = new Date().toISOString();
-    const updated = { ...show, lastRun: now, lastResult: finalStatus, lastDetails, noUpdateStreak };
+    const updated = { ...show, lastRun: now, lastResult: finalStatus, lastDetails };
     if (!dryRun) {
       store.saveShow(updated);
       const durationMs = Date.now() - startedAt;
@@ -340,21 +340,16 @@ async function runShow(showId, force = false, dryRun = false) {
       }).show();
     }
 
-    // Email alerts
+    // Email and Telegram alerts
     if (!dryRun) {
-      const emailCfg = settings.email;
       if (result.action === 'produced' && lastDetails) {
         const hasOpError = Object.values(lastDetails).includes('error');
         if (hasOpError) {
           sendAlerts(show, 'error', { ops: lastDetails });
         }
       }
-      if (result.action === 'no-update') {
-        const threshold = (emailCfg && emailCfg.noUpdateStreakThreshold) || 3;
-        if (noUpdateStreak >= threshold && noUpdateStreak % threshold === 0) {
-          sendAlerts(show, 'no-update', { streak: noUpdateStreak });
-        }
-      }
+      // counts the runs in a row with the source not updated (kept across restarts) and alerts at the threshold
+      alerter.noUpdateRun(show, result.action === 'no-update');
     }
 
   } catch(e) {
@@ -363,7 +358,7 @@ async function runShow(showId, force = false, dryRun = false) {
     updateTrayMenu();
     const now = new Date().toISOString();
     if (!dryRun) {
-      const updated = { ...show, lastRun: now, lastResult: 'error', lastDetails: null, noUpdateStreak: 0 };
+      const updated = { ...show, lastRun: now, lastResult: 'error', lastDetails: null };
       store.saveShow(updated);
       store.appendHistory(showId, { date: now, result: 'error', error: e.message });
       stats.add(showId, new Date(now), 'error', 0, 0);
@@ -379,8 +374,9 @@ async function runShow(showId, force = false, dryRun = false) {
       }).show();
     }
 
-    // Email alert on critical error
+    // Email and Telegram alert on critical error
     if (!dryRun) {
+      alerter.noUpdateRun(show, false);
       sendAlerts(show, 'error', { message: e.message });
     }
   } finally {
@@ -388,13 +384,25 @@ async function runShow(showId, force = false, dryRun = false) {
   }
 }
 
-// Email and Telegram alerts (each channel has its own on/off settings)
+// Email and Telegram alerts (each channel has its own on/off settings; each is tried again after 10 s and 60 s)
 function sendAlerts(show, type, details) {
+  alerter.alertShow(show, type, details)
+    .catch(e => store.appendLog('_system', `Alert failed: ${maskSecrets(e.message, secretsInUse())}`));
+}
+
+// Every password and token in use: masked in anything that reaches a log or a message
+function secretsInUse() {
   const s = store.getSettings();
-  emailNotifier.sendAlert(s.email, show, type, details)
-    .catch(e => store.appendLog('_system', `Email alert failed: ${e.message}`));
-  telegram.sendAlert(s.telegram, show, type, details)
-    .catch(e => store.appendLog('_system', `Telegram alert failed: ${e.message}`));
+  const out = [s.email && s.email.smtp && s.email.smtp.password, s.telegram && s.telegram.token];
+  store.getShows().forEach(sh => out.push(sh.ftp && sh.ftp.password));
+  store.getFtpBookmarks().forEach(b => out.push(b.password));
+  return out.filter(Boolean);
+}
+
+function desktopNotice(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body, icon: fs.existsSync(ICON_PATH) ? ICON_PATH : undefined }).show();
+  }
 }
 
 // ── Schedule date range check ─────────────────────────────────────────────────
@@ -523,6 +531,7 @@ ipcMain.handle('save-show', (_, show) => {
 ipcMain.handle('delete-show', (_, id) => {
   scheduler.cancelShow(id);
   store.deleteShow(id);
+  alertState.forgetShow(id);
   updateTrayMenu();
   return true;
 });
@@ -560,7 +569,9 @@ ipcMain.handle('open-log-folder', () => {
 ipcMain.handle('get-history',   (_, id) => store.readHistory(id));
 ipcMain.handle('clear-history', (_, id) => { store.clearHistory(id); return true; });
 
-ipcMain.handle('export-config', async () => {
+// includeSecrets: the "Include passwords and tokens" box (off by default). Off, the file has no secrets.
+ipcMain.handle('export-config', async (_, includeSecrets) => {
+  const withSecrets = includeSecrets === true;
   const date = new Date().toISOString().slice(0, 10);
   const result = await dialog.showSaveDialog(mainWindow, {
     title: mt('dlg.export_config'),
@@ -568,14 +579,10 @@ ipcMain.handle('export-config', async () => {
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
   if (result.canceled) return false;
-  const data = {
-    version:      1,
-    exportDate:   new Date().toISOString(),
-    settings:     store.getSettings(),
-    shows:        store.getShows(),
-    ftpBookmarks: store.getFtpBookmarks()
-  };
-  fs.writeFileSync(result.filePath, JSON.stringify(data, null, 2), 'utf-8');
+  const data = backup.buildExport(
+    { settings: store.getSettings(), shows: store.getShows(), ftpBookmarks: store.getFtpBookmarks() },
+    { includeSecrets: withSecrets });
+  fs.writeFileSync(result.filePath, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: withSecrets ? 0o600 : 0o644 });
   return true;
 });
 
@@ -592,6 +599,39 @@ ipcMain.handle('import-config', async () => {
     return { error: e.message };
   }
 });
+
+// Applies the file chosen with import-config. A secret the file does not carry is kept from this PC
+// (same server and user); the ones that stay empty are returned, so the app can list them.
+ipcMain.handle('apply-import', (_, { data, replace }) => {
+  const plan = backup.prepareImport(
+    { settings: store.getSettings(), shows: store.getShows(), ftpBookmarks: store.getFtpBookmarks() },
+    data || {}, { replace: replace === true });
+  for (const show of plan.shows) {
+    store.saveShow(show);
+    scheduler.cancelShow(show.id);
+    scheduler.scheduleShow(show, scheduledRun);
+  }
+  for (const bm of plan.ftpBookmarks) store.saveFtpBookmark(bm);
+  if (plan.settings) {
+    store.saveSettings(plan.settings);
+    _loadMainLocale();
+    applyLoginItem(store.getSettings());
+  }
+  updateTrayMenu();
+  return { shows: plan.shows.length, settings: !!plan.settings, missing: plan.missing };
+});
+
+// Categories: rename (merges into an existing one if the name is taken) and delete (shows move elsewhere)
+function applyCategoryChange(res) {
+  for (const show of res.changed) store.saveShow(show);
+  store.saveSettings({ categoryColors: res.colors });
+  updateTrayMenu();
+  return { changed: res.changed.length, merged: !!res.merged, shows: store.getShows(), settings: store.getSettings() };
+}
+ipcMain.handle('category-rename', (_, { from, to }) =>
+  applyCategoryChange(categories.renameCategory(store.getShows(), store.getSettings().categoryColors, from, to)));
+ipcMain.handle('category-delete', (_, { name, moveTo }) =>
+  applyCategoryChange(categories.deleteCategory(store.getShows(), store.getSettings().categoryColors, name, moveTo)));
 
 ipcMain.handle('get-ftp-bookmarks',   ()       => store.getFtpBookmarks());
 ipcMain.handle('save-ftp-bookmark', (_, bm) => {
@@ -651,14 +691,14 @@ ipcMain.handle('ftp-browse', async (_, { host, port, user, password, secure, pat
     });
     return { ok: true, path: rawPath, entries };
   } catch (err) {
-    return { ok: false, error: err.message };
+    return { ok: false, error: maskSecrets(err.message, [password]) };
   } finally {
     client.close();
   }
 });
 
-ipcMain.handle('test-email', (_, cfg) => emailNotifier.testConnection(cfg));
-ipcMain.handle('test-telegram', (_, cfg) => telegram.testConnection(cfg));
+ipcMain.handle('test-email', (_, cfg) => notify.testEmailConnection(cfg));
+ipcMain.handle('test-telegram', (_, cfg) => notify.testTelegramConnection(cfg));
 
 // ── Dashboard data ────────────────────────────────────────────────────────────
 
@@ -687,7 +727,7 @@ ipcMain.handle('get-activity', (_, limit = 50) => {
 });
 
 ipcMain.handle('get-running', () => [..._runStatus.entries()].filter(([, st]) => st === 'running').map(([id]) => id));
-ipcMain.handle('get-platform', () => ({ platform: process.platform, dataDir: store.getDataDir() }));
+ipcMain.handle('get-platform', () => ({ platform: process.platform, dataDir: store.getDataDir(), secretsEncrypted: store.secretsEncrypted() }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
@@ -706,6 +746,12 @@ async function runUpdateCheck(manual) {
   if (!info.ok) store.appendLog('_system', `Update check failed: ${info.error}`);
   if (!manual && info.available && mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('update-available', info);
+  }
+  // Desktop, Telegram and email, once per version and channel (needs the option and a channel switched on)
+  if (!manual && info.available) {
+    const repo = store.getSettings().updateRepo;
+    const url  = info.url && info.url.startsWith(`https://github.com/${repo}/releases/`) ? info.url : `https://github.com/${repo}/releases/latest`;
+    alerter.notifyUpdate(info, url).catch(e => store.appendLog('_system', `Update alert failed: ${maskSecrets(e.message, secretsInUse())}`));
   }
   return info;
 }
@@ -851,9 +897,23 @@ app.whenReady().then(() => {
 
   // Load store here (inside whenReady) so app.getPath('userData') is guaranteed ready.
   // This fixes "first install doesn't work, second does" on some Windows configurations.
+  store.setSecretBox(createSecretBox(safeStorage));   // passwords and tokens are encrypted on disk when the keystore allows it
   store.load();
   stats.load(store.getDataDir(), store.getHistoryDir());
   _loadMainLocale();
+  const sec = store.getSecretStatus();
+  if (sec.unreadable) store.appendLog('_system', `${sec.unreadable} saved password(s)/token(s) could not be decrypted on this PC: enter them again in Settings`);
+  if (!sec.encrypted) store.appendLog('_system', 'System keystore not available: passwords and tokens are saved without encryption');
+
+  alertState = createAlertState(path.join(store.getDataDir(), 'alert-state.json')).load();
+  // versions before 26.10.1 kept the "source not updated" count inside the show: move it to the alert state
+  for (const show of store.getShows()) if (alertState.adoptShowStreak(show)) store.saveShow(show);
+  alerter = notify.createAlerter({
+    getSettings: () => store.getSettings(),
+    state: alertState,
+    notifyDesktop: desktopNotice,
+    log: (level, text) => store.appendLog('_system', text)
+  });
 
   // Sync autostart setting on startup
   applyLoginItem(store.getSettings());

@@ -41,7 +41,7 @@ async function checkForUpdate(repo) {
     const url    = `https://github.com/${repo}/releases/tag/${encodeURIComponent(rel.tag_name || '')}`;
     const assets = releaseAssets(repo, rel);
     return { ok: true, current, latest, available: isNewer(latest, current), url,
-             installer: pickInstaller(assets), sumsUrl: (assets.find(a => a.name === 'SHA256SUMS.txt') || {}).url || null };
+             installer: pickInstaller(assets), notes: String(rel.body || '').slice(0, 2000), sumsUrl: (assets.find(a => a.name === 'SHA256SUMS.txt') || {}).url || null };
   } catch(e) {
     return { ok: false, current, error: e.message };
   }

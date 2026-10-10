@@ -589,3 +589,5 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .cat-color-row{display:flex;align-items:center;gap:12px}
 .cat-color-row input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer}
 .cat-color-name{font-weight:600;min-width:120px}
+.cat-edit{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 10px 50px}
+.cat-edit-input{min-width:180px;max-width:260px}

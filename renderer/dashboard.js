@@ -71,20 +71,43 @@ function categoryColor(name) {
   return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
 }
 
-// Settings → General: one row per category in use, with a colour picker and a reset button
+// Settings → General: one row per category in use, with a colour picker, a reset button,
+// rename (✎) and delete (🗑). Rename and delete open a small panel under the row.
+let _catEdit = null;   // { name, mode: 'rename' | 'delete' }
+
 function renderCategoryColors() {
   const el = document.getElementById('category-colors-list');
   if (!el) return;
   const cats = allCategories();
   if (!cats.length) { el.innerHTML = `<div class="hint">${t('set.cat.empty')}</div>`; return; }
+  if (_catEdit && !cats.includes(_catEdit.name)) _catEdit = null;
   el.innerHTML = cats.map(c => {
     const n = _shows.filter(s => categoryOf(s) === c).length;
+    const editing = _catEdit && _catEdit.name === c ? _catEdit.mode : '';
+    let panel = '';
+    if (editing === 'rename') {
+      panel = `<div class="cat-edit">
+        <input type="text" class="cat-edit-input" value="${esc(c)}" data-cat-new="${esc(c)}">
+        <button type="button" class="btn btn-sm" data-cat-rename-ok="${esc(c)}">${t('set.cat.rename.ok')}</button>
+        <button type="button" class="btn btn-sm btn-muted" data-cat-cancel>${t('set.cat.cancel')}</button>
+      </div>`;
+    } else if (editing === 'delete') {
+      const others = cats.filter(x => x !== c).map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+      panel = `<div class="cat-edit">
+        <span class="hint">${t(n === 1 ? 'set.cat.delete.msg.one' : 'set.cat.delete.msg', { n, name: esc(c) })}</span>
+        <select class="cat-edit-input" data-cat-move="${esc(c)}"><option value="">${t('cat.none')}</option>${others}</select>
+        <button type="button" class="btn btn-sm btn-danger" data-cat-delete-ok="${esc(c)}">${t('set.cat.delete.ok')}</button>
+        <button type="button" class="btn btn-sm btn-muted" data-cat-cancel>${t('set.cat.cancel')}</button>
+      </div>`;
+    }
     return `<div class="cat-color-row">
       <input type="color" value="${categoryColor(c)}" data-cat-color="${esc(c)}" title="${esc(t('set.cat.pick'))}">
       <span class="cat-color-name">${esc(c)}</span>
       <span class="hint">${t(n === 1 ? 'set.cat.count.one' : 'set.cat.count', { n })}</span>
       <button type="button" class="btn btn-xs btn-ghost" data-cat-reset="${esc(c)}" title="${esc(t('set.cat.reset'))}">↺</button>
-    </div>`;
+      <button type="button" class="btn btn-xs btn-ghost" data-cat-rename="${esc(c)}" title="${esc(t('set.cat.rename'))}">✎</button>
+      <button type="button" class="btn btn-xs btn-ghost" data-cat-delete="${esc(c)}" title="${esc(t('set.cat.delete'))}">🗑</button>
+    </div>${panel}`;
   }).join('');
   el.querySelectorAll('[data-cat-color]').forEach(input => {
     input.addEventListener('change', () => saveCategoryColor(input.dataset.catColor, input.value));
@@ -92,6 +115,46 @@ function renderCategoryColors() {
   el.querySelectorAll('[data-cat-reset]').forEach(btn => {
     btn.addEventListener('click', () => saveCategoryColor(btn.dataset.catReset, null));
   });
+  el.querySelectorAll('[data-cat-rename]').forEach(btn => {
+    btn.addEventListener('click', () => { _catEdit = { name: btn.dataset.catRename, mode: 'rename' }; renderCategoryColors(); });
+  });
+  el.querySelectorAll('[data-cat-delete]').forEach(btn => {
+    btn.addEventListener('click', () => { _catEdit = { name: btn.dataset.catDelete, mode: 'delete' }; renderCategoryColors(); });
+  });
+  el.querySelectorAll('[data-cat-cancel]').forEach(btn => {
+    btn.addEventListener('click', () => { _catEdit = null; renderCategoryColors(); });
+  });
+  el.querySelectorAll('[data-cat-rename-ok]').forEach(btn => {
+    const from = btn.dataset.catRenameOk;
+    const run = () => renameCategoryUi(from, el.querySelector('[data-cat-new]').value);
+    btn.addEventListener('click', run);
+    el.querySelector('[data-cat-new]').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+  });
+  el.querySelectorAll('[data-cat-delete-ok]').forEach(btn => {
+    btn.addEventListener('click', () => deleteCategoryUi(btn.dataset.catDeleteOk, el.querySelector('[data-cat-move]').value));
+  });
+}
+
+// After a category change the main process has rewritten the shows and the colours
+async function afterCategoryChange(res) {
+  _shows    = res.shows;
+  _settings = res.settings;
+  _catEdit  = null;
+  renderSidebar();
+  renderCategoryColors();
+  if (document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+}
+
+async function renameCategoryUi(from, to) {
+  to = String(to || '').trim();
+  if (!to || to === from) { _catEdit = null; renderCategoryColors(); return; }
+  // the name is already a category: the two are merged (one confirmation)
+  if (allCategories().includes(to) && !confirm(t('set.cat.merge_confirm', { from, to }))) return;
+  await afterCategoryChange(await api.renameCategory(from, to));
+}
+
+async function deleteCategoryUi(name, moveTo) {
+  await afterCategoryChange(await api.deleteCategory(name, moveTo));
 }
 
 async function saveCategoryColor(name, color) {

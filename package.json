@@ -1,6 +1,6 @@
 {
   "name": "flowcast",
-  "version": "26.9.8",
+  "version": "26.10.1",
   "description": "Automated production and delivery of radio shows and audio programs: FFmpeg conversion, FTP upload, scheduling and email alerts.",
   "author": "Graziano Melzi <hello@onairgarage.com> (https://onairgarage.com)",
   "homepage": "https://onairgarage.com/tools/flowcast/",
@@ -8,6 +8,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node --test \"test/*.test.js\"",
     "build": "electron-builder --win --x64",
     "build-portable": "electron-builder --win portable --x64",
     "manual": "node scripts/manual/run.js dist",

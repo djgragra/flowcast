@@ -55,8 +55,26 @@ jobs:
             ' "$VERSION" "$LATEST" || { echo "::error::Version $VERSION must be greater than the latest release $LATEST"; exit 1; }
           fi
 
+  # Unit tests (alerts, secrets, backup, categories, texts): a failing test stops the release
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies (Electron itself is not needed for the tests)
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Run tests
+        run: npm test
+
   build:
-    needs: check-version
+    needs: [check-version, test]
     strategy:
       fail-fast: false
       matrix:
