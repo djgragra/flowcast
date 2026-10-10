@@ -12,5 +12,6 @@ Versions use `YY.M.N`. Newest first.
 - **New-version notice on desktop, Telegram and email**, once per version (Settings → Info → Updates; it needs Telegram or email switched on). A version is marked as announced only after the message was delivered, so a failed send is tried again at the next check.
 - **Categories**: a new button renames a category in all its shows and keeps its colour; another deletes it and asks where to move its shows (another category or *No category*). Renaming into a name that already exists merges the two (Settings → General → Categories and colors).
 - The Telegram text always says it comes from FlowCast, for bots shared with other programs.
+- The in-app Guide (English, Italian, Spanish), the PDF manuals and the README describe all of the above.
 - Unit tests (`npm test`) run before every build.
 - Texts in English, Italian and Spanish (same keys in all three, checked by a test).
