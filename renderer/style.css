@@ -606,3 +606,14 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .cat-edit-input{flex:1 1 200px;min-width:160px;max-width:280px;height:34px;background:var(--input);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:0 10px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
 .cat-edit-input:focus{border-color:var(--accent)}
 @media (max-width:760px){.cat-row{grid-template-columns:28px minmax(0,1fr) auto}.cat-count{display:none}.cat-edit{padding-left:14px}}
+
+/* Show / hide password */
+.pw-wrap{display:flex;gap:4px;align-items:center}
+.pw-wrap input{flex:1;min-width:0}
+.pw-eye{flex-shrink:0}
+
+/* Update banner: release notes, Help & About */
+.update-notes{flex-basis:100%;margin:4px 0 0;padding:8px 10px;max-height:160px;overflow:auto;white-space:pre-wrap;font:12px/1.5 inherit;background:var(--bg,transparent);border:1px solid var(--border);border-radius:6px}
+.update-notes.hidden{display:none}
+.about-p{font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6}
+#modal-whatsnew li{margin-bottom:4px}

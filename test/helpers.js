@@ -39,9 +39,12 @@ const SECRETS = { smtp: 'smtp-Pa55word!', token: '123456789:AAFexample_token_val
 function sampleData() {
   return {
     settings: {
-      email: { enabled: true, smtp: { host: 'smtp.example.org', port: 587, user: 'alerts', password: SECRETS.smtp, secure: false },
-               from: 'alerts@example.org', recipients: ['a@example.org', 'b@example.org'], onError: true, onNoUpdate: true, noUpdateStreakThreshold: 3 },
-      telegram: { enabled: true, token: SECRETS.token, recipients: [{ chatId: '111', note: 'Anna' }], onError: true, onNoUpdate: false },
+      notifications: {
+        desktop: true,
+        email: { enabled: true, host: 'smtp.example.org', port: 587, user: 'alerts', pass: SECRETS.smtp, secure: false,
+                 from: 'alerts@example.org', recipients: ['a@example.org', 'b@example.org'], onError: true, onRecovery: true, onNoUpdate: true, noUpdateStreakThreshold: 3 },
+        telegram: { enabled: true, botToken: SECRETS.token, recipients: [{ chatId: '111', note: 'Anna' }], onError: true, onRecovery: true, onNoUpdate: false }
+      },
       language: 'en', updateAlert: true
     },
     shows: [{ id: 's1', name: 'Morning', category: 'News', ftp: { enabled: true, host: 'ftp.example.org', user: 'u', password: SECRETS.ftp } }],

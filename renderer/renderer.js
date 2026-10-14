@@ -38,8 +38,10 @@ async function init() {
 
   checkFfmpegWarning();
   refreshAboutVersion();
-  api.onUpdateAvailable(showUpdateBanner);
-  api.getUpdateInfo().then(info => { if (info) showUpdateBanner(info); });
+  initPasswordEyes();
+  api.onUpdateAvailable(view => showUpdateBanner(view));
+  api.getUpdateInfo().then(view => { if (view) showUpdateBanner(view); });
+  initWhatsNew();
 
   api.onShowStatus(({ id, status }) => { updateShowStatus(id, status); refreshRunning(); });
   api.onLogLine(({ id, line }) => { if (_activeShowId === id) appendLogLine(line); consoleAppend(id, line); });
@@ -487,6 +489,7 @@ function fillShowForm(show) {
   document.getElementById('f-ftp-port').value           = ftp.port       || 21;
   document.getElementById('f-ftp-user').value           = ftp.user       || '';
   document.getElementById('f-ftp-pass').value           = ftp.password   || '';
+  resetPasswordEyes();
   document.getElementById('f-ftp-path').value           = ftp.remotePath || '';
   document.getElementById('f-ftp-secure').checked       = !!ftp.secure;
   populateFtpBookmarkSelect(ftp.bookmarkId || '');
@@ -708,7 +711,7 @@ function _bmEditPanelHtml(bm) {
       <label>${t('bm.field.pass')}</label>
         <div class="ir" style="gap:4px">
           <input class="bep-pass" type="password" value="${esc(bm.password || '')}" placeholder="••••••••" style="flex:1">
-          <button type="button" class="btn btn-muted btn-sm bep-eye" tabindex="-1">👁</button>
+          <button type="button" class="btn btn-muted btn-sm bep-eye" tabindex="-1" title="${t('pw.show')}">👁</button>
         </div>
       <label>${t('bm.field.path')}</label>
         <div class="ir" style="gap:4px">
@@ -1173,6 +1176,9 @@ function openSettings(section) {
   document.getElementById('s-ftp-timeout').value    = _settings.ftpTimeout  || 30;
   document.getElementById('s-autostart').checked     = !!_settings.autostart;
   document.getElementById('s-start-hidden').checked  = !!_settings.startHidden;
+  document.getElementById('s-keep-awake').checked    = !!_settings.keepAwake;
+  document.getElementById('s-installation-name').value = _settings.installationName || '';
+  api.getPlatform().then(p => { document.getElementById('s-installation-name').placeholder = p.hostname || ''; });
   document.getElementById('s-check-updates').checked = _settings.checkUpdates !== false;
   document.getElementById('s-update-alert').checked  = _settings.updateAlert !== false;
   // Keep showing a download in progress or ready; otherwise start clean
@@ -1181,21 +1187,23 @@ function openSettings(section) {
     document.getElementById('btn-upd-open-settings').classList.add('hidden');
   }
 
-  const em = _settings.email || {};
-  const smtp = em.smtp || {};
+  const n = _settings.notifications || {};
+  const em = n.email || {};
+  document.getElementById('s-desktop-on').checked        = n.desktop !== false;
   document.getElementById('s-email-enabled').checked    = !!em.enabled;
-  document.getElementById('s-smtp-host').value           = smtp.host     || '';
-  document.getElementById('s-smtp-port').value           = smtp.port     || 587;
-  document.getElementById('s-smtp-user').value           = smtp.user     || '';
-  document.getElementById('s-smtp-pass').value           = smtp.password || '';
-  document.getElementById('s-smtp-from').value           = em.from       || '';
-  document.getElementById('s-smtp-secure').checked       = !!smtp.secure;
-  document.getElementById('s-smtp-selfsigned').checked   = !!smtp.allowSelfSigned;
-  const tg = _settings.telegram || {};
+  document.getElementById('s-smtp-host').value           = em.host || '';
+  document.getElementById('s-smtp-port').value           = em.port || 587;
+  document.getElementById('s-smtp-user').value           = em.user || '';
+  document.getElementById('s-smtp-pass').value           = em.pass || '';
+  document.getElementById('s-smtp-from').value           = em.from || '';
+  document.getElementById('s-smtp-secure').checked       = !!em.secure;
+  document.getElementById('s-smtp-selfsigned').checked   = !!em.allowSelfSigned;
+  const tg = n.telegram || {};
   document.getElementById('s-tg-enabled').checked    = !!tg.enabled;
-  document.getElementById('s-tg-token').value        = tg.token  || '';
+  document.getElementById('s-tg-token').value        = tg.botToken || '';
   renderTelegramRecipients(tg.recipients || []);
-  document.getElementById('s-tg-on-error').checked   = tg.onError !== false;
+  document.getElementById('s-tg-on-error').checked    = tg.onError !== false;
+  document.getElementById('s-tg-on-recovery').checked = tg.onRecovery !== false;
   document.getElementById('s-tg-on-noupdate').checked = !!tg.onNoUpdate;
   document.getElementById('telegram-test-result').textContent = '';
   renderCategoryColors();
@@ -1203,10 +1211,19 @@ function openSettings(section) {
   refreshUpdateAlertToggle();
   api.getPlatform().then(p => document.getElementById('secrets-warning').classList.toggle('hidden', p.secretsEncrypted !== false));
   document.getElementById('s-email-on-error').checked    = em.onError !== false;
+  document.getElementById('s-email-on-recovery').checked = em.onRecovery !== false;
   document.getElementById('s-email-on-noupdate').checked = !!em.onNoUpdate;
   document.getElementById('email-test-result').textContent = '';
+  const dg = _settings.digest || {};
+  document.getElementById('s-digest-on').checked    = !!dg.enabled;
+  document.getElementById('s-digest-freq').value    = dg.frequency === 'weekly' ? 'weekly' : 'daily';
+  document.getElementById('s-digest-when').value    = dg.when === 'problems' ? 'problems' : 'always';
+  document.getElementById('s-digest-times').value   = (dg.times && dg.times.length ? dg.times : ['08:00']).join(', ');
+  document.getElementById('digest-result').textContent = '';
+  refreshDigestFields();
   document.getElementById('s-language').value      = _settings.language     || 'en';
   document.getElementById('s-close-to-tray').value = _settings.closeToTray  || 'auto';
+  resetPasswordEyes();
 
   document.getElementById('page-settings').classList.remove('hidden');
   switchSettingsSection(section || 'general');
@@ -1222,6 +1239,9 @@ function switchSettingsSection(section) {
   document.querySelectorAll('.set-section').forEach(s =>
     s.classList.toggle('active', s.id === 'set-' + section));
   if (section === 'ftp') refreshSettingsFtpSection();
+  if (section === 'updates') refreshUpdatesSection();
+  if (section === 'about') refreshAboutSection();
+  resetPasswordEyes();
 }
 
 // Addresses typed in the Recipients field (commas, semicolons, spaces or new lines)
@@ -1237,6 +1257,18 @@ function refreshUpdateAlertToggle() {
 document.getElementById('s-email-enabled').addEventListener('change', refreshUpdateAlertToggle);
 document.getElementById('s-tg-enabled').addEventListener('change', refreshUpdateAlertToggle);
 
+// Times typed in the summary field: "08:00, 18:00" -> ['08:00', '18:00'] (valid HH:MM only)
+function typedDigestTimes() {
+  return [...new Set(document.getElementById('s-digest-times').value.split(/[\s,;]+/).map(x => x.trim()).filter(x => /^([01]?\d|2[0-3]):[0-5]\d$/.test(x))
+    .map(x => x.padStart(5, '0')))].sort();
+}
+
+function refreshDigestFields() {
+  const on = document.getElementById('s-digest-on').checked;
+  document.getElementById('digest-fields').style.opacity = on ? '1' : '0.5';
+}
+document.getElementById('s-digest-on').addEventListener('change', refreshDigestFields);
+
 async function saveSettings() {
   _settings = {
     baseWav:     document.getElementById('s-base-wav').value.trim(),
@@ -1245,36 +1277,46 @@ async function saveSettings() {
     ftpTimeout:  parseInt(document.getElementById('s-ftp-timeout').value) || 30,
     autostart:   document.getElementById('s-autostart').checked,
     startHidden: document.getElementById('s-start-hidden').checked,
+    keepAwake:   document.getElementById('s-keep-awake').checked,
+    installationName: document.getElementById('s-installation-name').value.trim(),
     checkUpdates:    document.getElementById('s-check-updates').checked,
     updateAlert:     document.getElementById('s-update-alert').checked,
-    telegram:        readTelegramForm(),
-    updateDismissed: _settings.updateDismissed || '',
     theme:       _settings.theme || 'dark',
     language:    document.getElementById('s-language').value    || 'en',
     closeToTray: document.getElementById('s-close-to-tray').value || 'auto',
-    email: {
-      enabled:    document.getElementById('s-email-enabled').checked,
-      smtp: {
-        host:     document.getElementById('s-smtp-host').value.trim(),
-        port:     parseInt(document.getElementById('s-smtp-port').value) || 587,
-        user:     document.getElementById('s-smtp-user').value.trim(),
-        password: document.getElementById('s-smtp-pass').value,
-        secure:   document.getElementById('s-smtp-secure').checked,
-        allowSelfSigned: document.getElementById('s-smtp-selfsigned').checked
-      },
-      from:         document.getElementById('s-smtp-from').value.trim(),
-      recipients:   typedRecipients(),
-      onError:      document.getElementById('s-email-on-error').checked,
-      onNoUpdate:   document.getElementById('s-email-on-noupdate').checked,
-      noUpdateStreakThreshold: 3
+    notifications: {
+      desktop: document.getElementById('s-desktop-on').checked,
+      telegram: readTelegramForm(),
+      email: {
+        enabled:         document.getElementById('s-email-enabled').checked,
+        host:            document.getElementById('s-smtp-host').value.trim(),
+        port:            parseInt(document.getElementById('s-smtp-port').value) || 587,
+        secure:          document.getElementById('s-smtp-secure').checked,
+        user:            document.getElementById('s-smtp-user').value.trim(),
+        pass:            document.getElementById('s-smtp-pass').value,
+        from:            document.getElementById('s-smtp-from').value.trim(),
+        allowSelfSigned: document.getElementById('s-smtp-selfsigned').checked,
+        recipients:      typedRecipients(),
+        onError:         document.getElementById('s-email-on-error').checked,
+        onRecovery:      document.getElementById('s-email-on-recovery').checked,
+        onNoUpdate:      document.getElementById('s-email-on-noupdate').checked,
+        noUpdateStreakThreshold: ((_settings.notifications || {}).email || {}).noUpdateStreakThreshold || 3
+      }
+    },
+    digest: {
+      enabled:   document.getElementById('s-digest-on').checked,
+      frequency: document.getElementById('s-digest-freq').value,
+      when:      document.getElementById('s-digest-when').value,
+      times:     typedDigestTimes()
     }
   };
   await api.saveSettings(_settings);
   // show what was kept: the main process drops entries that are not valid addresses
   const typed = typedRecipients();
   _settings = await api.getSettings();
-  const kept = (_settings.email && _settings.email.recipients) || [];
+  const kept = ((_settings.notifications || {}).email || {}).recipients || [];
   document.getElementById('s-email-recipients').value = kept.join(', ');
+  document.getElementById('s-digest-times').value = ((_settings.digest || {}).times || []).join(', ');
   const emailRes = document.getElementById('email-test-result');
   if (kept.length < new Set(typed.map(x => x.toLowerCase())).size) {
     emailRes.style.color = 'var(--red)';
@@ -1307,63 +1349,85 @@ async function checkFfmpegWarning() {
   el.classList.toggle('hidden', res.ok && unsupported.length === 0);
 }
 
-// ── Update notice ─────────────────────────────────────────────────────────────
+// ── Guided update ─────────────────────────────────────────────────────────────
+// Banner (every view) and Settings → Updates show the same states:
+//   available -> Download and install | Remind me later | Skip this version | Release notes
+//   downloading -> progress bar + Cancel      ready -> Close and install      error -> Try again
+// Nothing is installed without a click, and never while a show is being produced.
 
-function showUpdateBanner(info) {
-  if (!info || !info.available || info.latest === _settings.updateDismissed) return;
-  const banner = document.getElementById('update-banner');
+let _updateView  = null;   // last { info, banner, lastCheck, downloaded } from the main process
+let _updateBusy  = false;
+let _updateState = null;   // 'available' | 'downloading' | 'ready' | 'error'
+const $id = id => document.getElementById(id);
+const showEl = (id, on) => $id(id).classList.toggle('hidden', !on);
+
+function showUpdateBanner(view) {
+  if (!view || !view.info || !view.info.available || view.banner !== 'show') return;
+  _updateView = view;
+  const banner = $id('update-banner');
   // Do not go back to "available" while downloading or once this version is ready to install
-  if (_updateBusy || (_updateState === 'ready' && banner.dataset.version === info.latest)) return;
-  banner.dataset.version = info.latest;
-  setUpdateBanner('available', t('upd.available', { v: info.latest, current: info.current }));
+  if (_updateBusy || (_updateState === 'ready' && banner.dataset.version === view.info.latest)) return;
+  banner.dataset.version = view.info.latest;
+  if (view.downloaded) { setUpdateReady(view.info.latest); return; }
+  setUpdateBanner('available', t('upd.available', { v: view.info.latest, current: view.info.current }));
 }
 
 function hideUpdateBanner() {
-  document.getElementById('update-banner').classList.add('hidden');
+  $id('update-banner').classList.add('hidden');
+  $id('update-banner-notes').classList.add('hidden');
 }
 
-// Download → verify → close and install. The installer only runs when the user asks.
-let _updateBusy  = false;
-let _updateState = null;   // 'available' | 'downloading' | 'ready' | 'error'
-
-// The same state is shown in the banner and in Settings → Info (the settings page covers the banner)
+// The same state is shown in the banner and in Settings → Updates (the settings page covers the banner)
 function setUpdateBanner(state, text) {
   _updateState = state;
-  const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
-  const banner = document.getElementById('update-banner');
-  document.getElementById('update-banner-text').textContent = text;
-  show('update-progress',    state === 'downloading');
-  show('btn-update-open',    state === 'available');
-  show('btn-update-install', state === 'ready');
-  show('btn-update-page',    state === 'error');
-  show('btn-update-dismiss', state !== 'downloading' && state !== 'ready');
+  const banner = $id('update-banner');
+  $id('update-banner-text').textContent = text;
+  showEl('update-progress',    state === 'downloading');
+  showEl('btn-update-open',    state === 'available');
+  showEl('btn-update-install', state === 'ready');
+  showEl('btn-update-cancel',  state === 'downloading');
+  showEl('btn-update-retry',   state === 'error');
+  showEl('btn-update-remind',  state === 'available' || state === 'error');
+  showEl('btn-update-skip',    state === 'available' || state === 'error');
+  showEl('btn-update-notes',   state !== 'downloading');
   banner.classList.toggle('ready', state === 'ready');
   banner.classList.remove('hidden');
 
-  const res = document.getElementById('update-check-result');
+  const res = $id('update-check-result');
   res.textContent = text;
   res.style.color = state === 'error' ? 'var(--red)' : state === 'ready' ? 'var(--green)' : state === 'available' ? 'var(--warn)' : 'var(--muted)';
-  show('btn-upd-open-settings',    state === 'available');
-  show('btn-upd-install-settings', state === 'ready');
-  show('update-progress-settings', state === 'downloading');
-  document.getElementById('btn-check-updates').disabled = state === 'downloading';
+  showEl('btn-upd-open-settings',    state === 'available');
+  showEl('btn-upd-install-settings', state === 'ready');
+  showEl('update-progress-settings', state === 'downloading');
+  showEl('btn-upd-cancel-settings',  state === 'downloading');
+  showEl('btn-upd-remind-settings',  state === 'available' || state === 'error');
+  showEl('btn-upd-skip-settings',    state === 'available' || state === 'error');
+  showEl('btn-upd-notes-settings',   state !== 'downloading' && state !== null);
+  $id('btn-check-updates').disabled = state === 'downloading';
+}
+
+function setUpdateReady(v) {
+  const label = t(api.platform === 'win32' ? 'upd.install' : 'upd.open_installer');
+  $id('btn-update-install').textContent = label;
+  $id('btn-upd-install-settings').textContent = label;
+  setUpdateBanner('ready', t(api.platform === 'win32' ? 'upd.ready' : 'upd.ready_open', { v }));
 }
 
 async function startUpdateDownload() {
   if (_updateBusy) return;
   _updateBusy = true;
-  const v = document.getElementById('update-banner').dataset.version || '';
-  document.getElementById('update-progress-bar').style.width = '0';
+  const v = $id('update-banner').dataset.version || '';
+  $id('update-progress-bar').style.width = '0';
+  $id('update-progress-bar-settings').style.width = '0';
   setUpdateBanner('downloading', t('upd.downloading', { v }));
   const res = await api.downloadUpdate();
   _updateBusy = false;
   if (res.ok) {
-    const label = t(api.platform === 'win32' ? 'upd.install' : 'upd.open_installer');
-    document.getElementById('btn-update-install').textContent = label;
-    document.getElementById('btn-upd-install-settings').textContent = label;
-    setUpdateBanner('ready', t(api.platform === 'win32' ? 'upd.ready' : 'upd.ready_open', { v }));
+    setUpdateReady(v);
+  } else if (res.cancelled) {
+    setUpdateBanner('available', t('upd.available', { v, current: _updateView && _updateView.info ? _updateView.info.current : '' }));
   } else {
-    const known = { 'checksum-mismatch': 'upd.err.checksum', 'no-installer': 'upd.err.no_installer', 'no-checksums': 'upd.err.no_checksums' };
+    const known = { 'checksum-mismatch': 'upd.err.checksum', 'no-installer': 'upd.err.no_installer', 'no-checksums': 'upd.err.no_checksums', stalled: 'upd.err.stalled' };
     setUpdateBanner('error', t('upd.err', { error: known[res.error] ? t(known[res.error]) : res.error }));
   }
 }
@@ -1371,60 +1435,207 @@ async function startUpdateDownload() {
 api.onUpdateProgress(({ received, total }) => {
   const mb  = n => (n / 1048576).toFixed(0);
   const pct = total ? Math.round(received * 100 / total) : 0;
-  const text = t('upd.downloading', { v: document.getElementById('update-banner').dataset.version || '' }) +
+  const text = t('upd.downloading', { v: $id('update-banner').dataset.version || '' }) +
     (total ? ` ${pct}% (${mb(received)}/${mb(total)} MB)` : ` ${mb(received)} MB`);
-  document.getElementById('update-progress-bar').style.width = pct + '%';
-  document.getElementById('update-progress-bar-settings').style.width = pct + '%';
-  document.getElementById('update-banner-text').textContent = text;
-  document.getElementById('update-check-result').textContent = text;
+  $id('update-progress-bar').style.width = pct + '%';
+  $id('update-progress-bar-settings').style.width = pct + '%';
+  $id('update-banner-text').textContent = text;
+  $id('update-check-result').textContent = text;
 });
 
-document.getElementById('btn-update-open').addEventListener('click', startUpdateDownload);
-document.getElementById('btn-upd-open-settings').addEventListener('click', startUpdateDownload);
-document.getElementById('btn-update-install').addEventListener('click', () => api.installUpdate());
-document.getElementById('btn-upd-install-settings').addEventListener('click', () => api.installUpdate());
-document.getElementById('btn-update-page').addEventListener('click', () => api.openUpdate());
-document.getElementById('btn-open-manual-help').addEventListener('click', () => api.openManual());
-document.getElementById('btn-open-manual-settings').addEventListener('click', () => api.openManual());
-document.getElementById('btn-update-dismiss').addEventListener('click', async () => {
-  const v = document.getElementById('update-banner').dataset.version || '';
-  _settings.updateDismissed = v;
-  await api.dismissUpdate(v);
+// "Close and install": refused while a show is running (with the reason), a safety copy is made first
+async function installUpdate() {
+  const res = await api.installUpdate();
+  if (res && res.ok) {
+    if (res.hint === 'mac')   setUpdateBanner('ready', t('upd.mac_hint'));
+    if (res.hint === 'linux') setUpdateBanner('ready', t('upd.linux_hint'));
+    return;
+  }
+  const msg = res && res.error === 'busy' ? t('upd.busy', { names: (res.busy || []).join(', ') }) : t('upd.err', { error: (res && res.error) || '?' });
+  setUpdateBanner('ready', msg);
+  $id('update-banner-text').textContent = msg;
+  $id('update-check-result').textContent = msg;
+  $id('update-check-result').style.color = 'var(--red)';
+}
+
+async function remindUpdateLater() {
+  _updateView = await api.remindUpdate();
   hideUpdateBanner();
-});
+  _updateState = null;
+  refreshUpdatesSection();
+}
+async function skipThisVersion() {
+  _updateView = await api.skipUpdate();
+  hideUpdateBanner();
+  _updateState = null;
+  refreshUpdatesSection();
+}
+function toggleNotes() {
+  const box = $id('update-banner-notes');
+  const notes = (_updateView && _updateView.info && _updateView.info.notes) || '';
+  box.textContent = notes;
+  box.classList.toggle('hidden', !box.classList.contains('hidden') || !notes);
+  if (!notes) api.openUpdate();
+}
 
-document.getElementById('btn-check-updates').addEventListener('click', async () => {
-  const el  = document.getElementById('update-check-result');
-  const btn = document.getElementById('btn-upd-open-settings');
+$id('btn-update-open').addEventListener('click', startUpdateDownload);
+$id('btn-update-retry').addEventListener('click', startUpdateDownload);
+$id('btn-upd-open-settings').addEventListener('click', startUpdateDownload);
+$id('btn-update-cancel').addEventListener('click', () => api.cancelUpdate());
+$id('btn-upd-cancel-settings').addEventListener('click', () => api.cancelUpdate());
+$id('btn-update-install').addEventListener('click', installUpdate);
+$id('btn-upd-install-settings').addEventListener('click', installUpdate);
+$id('btn-update-remind').addEventListener('click', remindUpdateLater);
+$id('btn-upd-remind-settings').addEventListener('click', remindUpdateLater);
+$id('btn-update-skip').addEventListener('click', skipThisVersion);
+$id('btn-upd-skip-settings').addEventListener('click', skipThisVersion);
+$id('btn-update-notes').addEventListener('click', toggleNotes);
+$id('btn-upd-notes-settings').addEventListener('click', () => api.openUpdate());
+$id('btn-open-manual-help').addEventListener('click', () => api.openManual());
+$id('link-about-manual').addEventListener('click', e => { e.preventDefault(); api.openManual(); });
+
+// Settings → Updates: last check and the state of the newest version
+function describeLastCheck(lc) {
+  if (!lc) return t('set.upd.never');
+  const when = new Date(lc.at).toLocaleString(i18n.dateLocale());
+  return lc.ok ? t('set.upd.last_ok', { date: when }) : t('set.upd.last_fail', { date: when, error: lc.error || '?' });
+}
+
+async function refreshUpdatesSection() {
+  const view = await api.getUpdateState();
+  _updateView = view || _updateView;
+  $id('s-upd-last').textContent = describeLastCheck(view && view.lastCheck);
+  if (_updateBusy || _updateState === 'ready' || _updateState === 'error') return;
+  const info = view && view.info;
+  if (info && info.ok && info.available) {
+    $id('update-banner').dataset.version = info.latest;
+    if (view.banner === 'show') { setUpdateBanner('available', t('upd.available', { v: info.latest, current: info.current })); return; }
+    // put off or skipped: the banner stays hidden, the page says so and still offers the download
+    const text = t(view.banner === 'skipped' ? 'upd.state_skipped' : 'upd.state_snoozed', { v: info.latest });
+    const res = $id('update-check-result');
+    res.style.color = 'var(--warn)'; res.textContent = text;
+    showEl('btn-upd-open-settings', true);
+    showEl('btn-upd-notes-settings', true);
+  }
+}
+
+$id('btn-check-updates').addEventListener('click', async () => {
+  const el  = $id('update-check-result');
+  const btn = $id('btn-upd-open-settings');
   btn.classList.add('hidden');
   el.style.color = 'var(--muted)';
   el.textContent = t('set.upd.checking');
-  const res = await api.checkUpdates();
+  const view = await api.checkUpdates();
+  _updateView = view;
+  $id('s-upd-last').textContent = describeLastCheck(view.lastCheck);
+  const res = view.info || {};
   if (!res.ok) {
     el.style.color = 'var(--red)';
     el.textContent = t('set.upd.error', { error: res.error === 'invalid-repo' ? t('set.upd.invalid_repo') : res.error });
   } else if (res.available) {
-    el.style.color = 'var(--warn)';
-    el.textContent = t('set.upd.new', { v: res.latest });
-    btn.classList.remove('hidden');
-    // A manual check shows the banner again, even for a version ignored before
-    _settings.updateDismissed = '';
-    await api.dismissUpdate('');
-    showUpdateBanner(res);
+    // A manual check shows the banner again, even for a version skipped or put off before
+    showUpdateBanner({ ...view, banner: 'show' });
+    refreshUpdatesSection();
   } else {
     el.style.color = 'var(--green)';
     el.textContent = res.noRelease ? t('set.upd.no_release') : t('set.upd.uptodate', { v: res.current });
   }
 });
 
-async function refreshAboutVersion() {
-  const v = await api.getAppVersion();
-  document.getElementById('about-version').textContent = t('about.version', { v });
-  document.getElementById('s-upd-current').textContent = v;
+// After the update: "Updated to X" and the What's new window, once
+async function initWhatsNew() {
+  const wn = await api.getWhatsNew();
+  if (!wn) return;
+  $id('updated-banner-text').textContent = t('upd.updated', { v: wn.version });
+  $id('updated-banner').classList.remove('hidden');
+  const open = () => {
+    $id('whatsnew-title').textContent = t('upd.whatsnew_title', { v: wn.version });
+    $id('whatsnew-date').textContent = wn.date || '';
+    const list = $id('whatsnew-list');
+    list.innerHTML = '';
+    (wn.bullets.length ? wn.bullets : [t('upd.whatsnew_none')]).forEach(b => {
+      const li = document.createElement('li');
+      // the bullets of CHANGELOG.md may use **bold** and `code`: shown as plain text with the marks removed
+      li.textContent = b.replace(/\*\*|`/g, '');
+      list.appendChild(li);
+    });
+    $id('modal-whatsnew').classList.remove('hidden');
+  };
+  const seen = () => { $id('updated-banner').classList.add('hidden'); $id('modal-whatsnew').classList.add('hidden'); api.whatsNewSeen(); };
+  $id('btn-updated-whatsnew').addEventListener('click', open);
+  $id('btn-updated-close').addEventListener('click', seen);
+  $id('btn-whatsnew-close').addEventListener('click', seen);
+  open();
 }
 
-function openAbout()  { document.getElementById('modal-about').classList.remove('hidden'); }
-function closeAbout() { document.getElementById('modal-about').classList.add('hidden'); }
+async function refreshAboutVersion() {
+  const v = await api.getAppVersion();
+  $id('about-version').textContent = t('about.version', { v });
+  $id('s-upd-current').textContent = v;
+}
+
+// Help & About: version, system, support info
+async function refreshAboutSection() {
+  refreshAboutVersion();
+  const p = await api.getPlatform();
+  const names = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
+  $id('about-system').textContent = `${names[p.platform] || p.platform} · Electron · Node.js · FFmpeg`;
+  $id('about-copy-result').textContent = '';
+}
+
+$id('btn-copy-support').addEventListener('click', async () => {
+  const text = await api.getSupportInfo();
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch(_) {}
+  if (!ok) {   // fallback when the clipboard API is not allowed
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch(_) {}
+    ta.remove();
+  }
+  const el = $id('about-copy-result');
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+  el.textContent = ok ? t('about.copied') : t('about.copy_failed');
+  setTimeout(() => { el.textContent = ''; }, 3000);
+});
+$id('btn-open-logs').addEventListener('click', () => api.openLogFolder());
+$id('btn-about-check-updates').addEventListener('click', () => { switchSettingsSection('updates'); $id('btn-check-updates').click(); });
+
+// ── Show / hide password (every password field: SMTP, Telegram token, FTP) ─────
+// An eye button next to the field; the field opens hidden every time the page is shown, and the value shown
+// is the one already in memory.
+function attachEye(input) {
+  if (!input || input.dataset.eye) return;
+  input.dataset.eye = '1';
+  const wrap = document.createElement('div');
+  wrap.className = 'pw-wrap';
+  input.parentNode.insertBefore(wrap, input);
+  wrap.appendChild(input);
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-muted btn-sm pw-eye';
+  btn.tabIndex = -1;
+  const paint = () => {
+    const hidden = input.type === 'password';
+    btn.textContent = hidden ? '👁' : '🙈';
+    btn.title = t(hidden ? 'pw.show' : 'pw.hide');
+    btn.setAttribute('aria-label', btn.title);
+  };
+  btn.addEventListener('click', () => { input.type = input.type === 'password' ? 'text' : 'password'; paint(); });
+  btn._paint = paint;
+  wrap.appendChild(btn);
+  paint();
+}
+function resetPasswordEyes() {
+  document.querySelectorAll('.pw-wrap').forEach(w => {
+    const inp = w.querySelector('input'); const btn = w.querySelector('.pw-eye');
+    if (inp && btn) { inp.type = 'password'; btn._paint(); }
+  });
+}
+function initPasswordEyes() {
+  ['s-smtp-pass', 's-tg-token', 'f-ftp-pass'].forEach(id => attachEye($id(id)));
+}
+
 function openHelp()   { document.getElementById('modal-help').classList.remove('hidden'); }
 function closeHelp()  { document.getElementById('modal-help').classList.add('hidden'); }
 
@@ -1452,7 +1663,8 @@ async function importConfig() {
   if (!data) return;
   if (data.error) {
     status.style.color = 'var(--red)';
-    status.textContent = t('cfg.error', { msg: data.error });
+    const known = { invalid: 'cfg.err.invalid', 'too-big': 'cfg.err.too_big', 'wrong-app': 'cfg.err.wrong_app' };
+    status.textContent = t('cfg.error', { msg: known[data.error] ? t(known[data.error]) : data.error });
     return;
   }
 
@@ -1462,6 +1674,12 @@ async function importConfig() {
   // The main process merges the file with what this PC has: a password the file does not carry is
   // kept (same server and user); the ones still empty come back in "missing".
   const res = await api.applyImport(data, replace);
+  if (res && res.error) {
+    status.style.color = 'var(--red)';
+    const known = { invalid: 'cfg.err.invalid', 'too-big': 'cfg.err.too_big', 'wrong-app': 'cfg.err.wrong_app' };
+    status.textContent = t('cfg.error', { msg: known[res.error] ? t(known[res.error]) : res.error });
+    return;
+  }
   _settings = await api.getSettings();
   _shows    = await api.getShows();
 
@@ -1776,14 +1994,12 @@ document.getElementById('btn-test-email').addEventListener('click', async () => 
   el.textContent = t('set.email.testing');
   const cfg = {
     enabled: true,
-    smtp: {
-      host:     document.getElementById('s-smtp-host').value.trim(),
-      port:     parseInt(document.getElementById('s-smtp-port').value) || 587,
-      user:     document.getElementById('s-smtp-user').value.trim(),
-      password: document.getElementById('s-smtp-pass').value,
-      secure:   document.getElementById('s-smtp-secure').checked,
-      allowSelfSigned: document.getElementById('s-smtp-selfsigned').checked
-    }
+    host:     document.getElementById('s-smtp-host').value.trim(),
+    port:     parseInt(document.getElementById('s-smtp-port').value) || 587,
+    user:     document.getElementById('s-smtp-user').value.trim(),
+    pass:     document.getElementById('s-smtp-pass').value,
+    secure:   document.getElementById('s-smtp-secure').checked,
+    allowSelfSigned: document.getElementById('s-smtp-selfsigned').checked
   };
   const res = await api.testEmail(cfg);
   el.style.color = res.success ? 'var(--green)' : 'var(--red)';
@@ -1822,9 +2038,10 @@ document.getElementById('btn-add-tg-recipient').addEventListener('click', () => 
 function readTelegramForm() {
   return {
     enabled:    document.getElementById('s-tg-enabled').checked,
-    token:      document.getElementById('s-tg-token').value.trim(),
+    botToken:   document.getElementById('s-tg-token').value.trim(),
     recipients: collectTgRecipients(),
     onError:    document.getElementById('s-tg-on-error').checked,
+    onRecovery: document.getElementById('s-tg-on-recovery').checked,
     onNoUpdate: document.getElementById('s-tg-on-noupdate').checked
   };
 }
@@ -1833,6 +2050,18 @@ document.getElementById('btn-test-telegram').addEventListener('click', async () 
   el.style.color = 'var(--muted)';
   el.textContent = '…';
   const res = await api.testTelegram(readTelegramForm());
+  el.style.color = res.success ? 'var(--green)' : 'var(--red)';
+  el.textContent = res.message;
+});
+
+// Summary: send it now
+document.getElementById('btn-digest-now').addEventListener('click', async () => {
+  const el = document.getElementById('digest-result');
+  el.style.color = 'var(--muted)';
+  el.textContent = '…';
+  // what is on the page may not be saved yet: the summary uses the saved channels, so save first
+  await saveSettings();
+  const res = await api.sendDigestNow();
   el.style.color = res.success ? 'var(--green)' : 'var(--red)';
   el.textContent = res.message;
 });
@@ -1846,9 +2075,7 @@ document.getElementById('btn-theme-toggle').addEventListener('click', async () =
 });
 
 // About / Help
-document.getElementById('btn-about').addEventListener('click', openAbout);
-document.getElementById('btn-about-close').addEventListener('click', closeAbout);
-document.getElementById('modal-about').addEventListener('click', function(e) { if (e.target === this) closeAbout(); });
+document.getElementById('btn-about').addEventListener('click', () => openSettings('about'));
 document.getElementById('btn-help').addEventListener('click', openHelp);
 document.getElementById('btn-help-close').addEventListener('click', closeHelp);
 document.getElementById('modal-help').addEventListener('click', function(e) { if (e.target === this) closeHelp(); });

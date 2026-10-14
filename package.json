@@ -1,6 +1,6 @@
 {
   "name": "flowcast",
-  "version": "26.10.1",
+  "version": "26.10.2",
   "description": "Automated production and delivery of radio shows and audio programs: FFmpeg conversion, FTP upload, scheduling and email alerts.",
   "author": "Graziano Melzi <hello@onairgarage.com> (https://onairgarage.com)",
   "homepage": "https://onairgarage.com/tools/flowcast/",
@@ -37,6 +37,7 @@
       "src/**/*",
       "assets/**/*",
       "!assets/brand-set/**",
+      "CHANGELOG.md",
       "LICENSE"
     ],
     "copyright": "Copyright © 2026 Graziano Melzi",

@@ -58,13 +58,17 @@ function demoData() {
     settings: {
       baseWav: 'C:\\Radio\\Exports', baseArchive: 'D:\\Archive', ffmpegPath: 'C:\\ffmpeg\\bin\\ffmpeg.exe',
       ftpTimeout: 30, autostart: false, startHidden: false, theme: 'dark', language: 'en', closeToTray: 'auto',
-      checkUpdates: false, updateRepo: 'djgragra/flowcast', updateDismissed: '',
-      email: {
-        enabled: true,
-        smtp: { host: 'smtp.example.com', port: 587, user: 'alerts@example.com', password: 'demo-password', secure: false, allowSelfSigned: false },
-        from: 'alerts@example.com', recipients: ['producer@example.com', 'engineer@example.com'],
-        onError: true, onNoUpdate: true, noUpdateStreakThreshold: 3
-      }
+      checkUpdates: false, updateRepo: 'djgragra/flowcast', installationName: 'Studio PC',
+      notifications: {
+        desktop: true,
+        email: {
+          enabled: true, host: 'smtp.example.com', port: 587, user: 'alerts@example.com', pass: 'demo-password', secure: false, allowSelfSigned: false,
+          from: 'alerts@example.com', recipients: ['producer@example.com', 'engineer@example.com'],
+          onError: true, onRecovery: true, onNoUpdate: true, noUpdateStreakThreshold: 3
+        },
+        telegram: { enabled: false, botToken: '', recipients: [], onError: true, onRecovery: true, onNoUpdate: false }
+      },
+      digest: { enabled: true, frequency: 'daily', times: ['08:00'], when: 'always' }
     },
     shows: [
       show('demo-morning', 'Morning News',   'morning-news',   '07:10', 'weekdays', [], ['Jingles\\intro.wav', 'News\\morning_1.wav', 'News\\morning_2.wav']),

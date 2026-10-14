@@ -67,8 +67,17 @@
       <span class="update-progress hidden" id="update-progress"><span id="update-progress-bar"></span></span>
       <button class="btn btn-sm" id="btn-update-open" data-i18n="upd.download">Download and install</button>
       <button class="btn btn-sm btn-install hidden" id="btn-update-install"></button>
-      <button class="btn btn-muted btn-sm hidden" id="btn-update-page" data-i18n="upd.page">Open download page</button>
-      <button class="btn btn-muted btn-sm" id="btn-update-dismiss" data-i18n="upd.dismiss">Ignore this version</button>
+      <button class="btn btn-muted btn-sm hidden" id="btn-update-cancel" data-i18n="upd.cancel">Cancel</button>
+      <button class="btn btn-muted btn-sm hidden" id="btn-update-retry" data-i18n="upd.retry">Try again</button>
+      <button class="btn btn-muted btn-sm" id="btn-update-remind" data-i18n="upd.remind">Remind me later</button>
+      <button class="btn btn-muted btn-sm" id="btn-update-skip" data-i18n="upd.skip">Skip this version</button>
+      <button class="btn btn-muted btn-sm" id="btn-update-notes" data-i18n="upd.notes">Release notes</button>
+      <pre id="update-banner-notes" class="update-notes hidden"></pre>
+    </div>
+    <div id="updated-banner" class="update-banner ready hidden">
+      <span id="updated-banner-text"></span>
+      <button class="btn btn-sm" id="btn-updated-whatsnew" data-i18n="upd.whatsnew_btn">What's new</button>
+      <button class="btn btn-muted btn-sm" id="btn-updated-close" data-i18n="about.close">Close</button>
     </div>
     <div id="ffmpeg-warning" class="ffmpeg-warning hidden">
       <span id="ffmpeg-warning-text"></span>
@@ -482,11 +491,13 @@
   </div>
   <div class="set-layout">
     <nav class="set-nav">
-      <button class="set-nav-btn active" data-section="general" data-i18n="set.nav.general">🎛 Generale</button>
-      <button class="set-nav-btn" data-section="email"   data-i18n="set.nav.email">📧 Email</button>
-      <button class="set-nav-btn" data-section="ftp"     data-i18n="set.nav.ftp">📡 FTP</button>
-      <button class="set-nav-btn" data-section="backup"  data-i18n="set.nav.backup">💾 Backup</button>
-      <button class="set-nav-btn" data-section="info"    data-i18n="set.nav.info">ℹ Info</button>
+      <button class="set-nav-btn active" data-section="general"    data-i18n="set.nav.general">🎛 General</button>
+      <button class="set-nav-btn" data-section="ftp"        data-i18n="set.nav.ftp">📡 FTP</button>
+      <button class="set-nav-btn" data-section="alerts"     data-i18n="set.nav.alerts">🔔 Alerts</button>
+      <button class="set-nav-btn" data-section="categories" data-i18n="set.nav.categories">🏷 Categories</button>
+      <button class="set-nav-btn" data-section="updates"    data-i18n="set.nav.updates">⬆ Updates</button>
+      <button class="set-nav-btn" data-section="backup"     data-i18n="set.nav.backup">💾 Backup</button>
+      <button class="set-nav-btn" data-section="about"      data-i18n="set.nav.about">ℹ Help &amp; About</button>
     </nav>
     <div class="set-content">
 
@@ -564,14 +575,28 @@
           </div>
         </div>
         <div class="form-section" style="margin-bottom:0">
-          <h3 data-i18n="set.cat.title">Categories and colors</h3>
-          <div class="note" style="margin-bottom:10px" data-i18n="set.cat.note">Each category gets a colour automatically, used in the shows list, Schedule and labels. Click it to pick another one, ↺ resets it to automatic.</div>
-          <div id="category-colors-list"></div>
+          <h3 data-i18n="set.inst.title">This installation</h3>
+          <div class="field">
+            <label data-i18n="set.inst.label">Name of this installation (shown in alerts)</label>
+            <input type="text" id="s-installation-name" maxlength="60" spellcheck="false">
+            <div class="note" data-i18n="set.inst.note">Empty = the name of this computer. Every alert starts with [FlowCast · name], so with several PCs you know which one wrote.</div>
+          </div>
+          <div class="cb-row" style="margin-top:12px">
+            <label class="toggle"><input type="checkbox" id="s-keep-awake"><span class="toggle-slider"></span></label>
+            <label for="s-keep-awake" data-i18n="set.awake.label">Keep this PC awake while FlowCast is running</label>
+          </div>
         </div>
       </div>
 
-      <!-- Email -->
-      <div class="set-section" id="set-email">
+      <!-- Alerts -->
+      <div class="set-section" id="set-alerts">
+        <div class="form-section">
+          <h3 data-i18n="set.desktop.title">Desktop notifications</h3>
+          <div class="cb-row">
+            <label class="toggle"><input type="checkbox" id="s-desktop-on"><span class="toggle-slider"></span></label>
+            <label for="s-desktop-on" data-i18n="set.desktop.label">Show a notice on this PC when a show is produced or fails</label>
+          </div>
+        </div>
         <div class="form-section">
           <h3 data-i18n="set.email.title">Email alerts</h3>
           <div class="cb-row" style="margin-bottom:12px">
@@ -623,6 +648,10 @@
                 <label for="s-email-on-error" data-i18n="set.on_error.label">Alert on error</label>
               </div>
               <div class="cb-row">
+                <input type="checkbox" id="s-email-on-recovery" checked>
+                <label for="s-email-on-recovery" data-i18n="set.on_recovery.label">Alert when it works again</label>
+              </div>
+              <div class="cb-row">
                 <input type="checkbox" id="s-email-on-noupdate">
                 <label for="s-email-on-noupdate" data-i18n="set.on_noupdate.label">Alert if file not updated for 3+ runs</label>
               </div>
@@ -651,6 +680,10 @@
               <input type="checkbox" id="s-tg-on-error">
               <label for="s-tg-on-error" data-i18n="set.tg.on_error">Alert on error</label>
             </div>
+            <div class="cb-row" style="margin-bottom:6px">
+              <input type="checkbox" id="s-tg-on-recovery" checked>
+              <label for="s-tg-on-recovery" data-i18n="set.on_recovery.label">Alert when it works again</label>
+            </div>
             <div class="cb-row" style="margin-bottom:12px">
               <input type="checkbox" id="s-tg-on-noupdate">
               <label for="s-tg-on-noupdate" data-i18n="set.tg.on_noupdate">Alert if the file is not updated</label>
@@ -668,6 +701,40 @@
             </div>
           </div>
         </div>
+        <div class="form-section">
+          <h3 data-i18n="set.digest.title">Summary</h3>
+          <div class="cb-row" style="margin-bottom:12px">
+            <label class="toggle"><input type="checkbox" id="s-digest-on"><span class="toggle-slider"></span></label>
+            <label for="s-digest-on" data-i18n="set.digest.on">Send a summary of what happened</label>
+          </div>
+          <div id="digest-fields">
+            <div class="row2">
+              <div class="field">
+                <label data-i18n="set.digest.freq">How often</label>
+                <select id="s-digest-freq">
+                  <option value="daily"  data-i18n="set.digest.daily">Every day (last 24 hours)</option>
+                  <option value="weekly" data-i18n="set.digest.weekly">Every Monday (last 7 days)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label data-i18n="set.digest.when">What to send</label>
+                <select id="s-digest-when">
+                  <option value="always"   data-i18n="set.digest.always">Always</option>
+                  <option value="problems" data-i18n="set.digest.problems">Only if something needs attention</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label data-i18n="set.digest.times">At (time of this PC; several times separated by commas)</label>
+              <input type="text" id="s-digest-times" placeholder="08:00, 18:00" spellcheck="false" style="max-width:260px">
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <button class="btn btn-muted" id="btn-digest-now" data-i18n="set.digest.now">📨 Send now</button>
+              <span id="digest-result" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+            <div class="note" data-i18n="set.digest.note">The summary goes out on the channels switched on above (email, Telegram). If this PC is off at that time, it is sent at the first start after it.</div>
+          </div>
+        </div>
       </div>
 
       <!-- FTP Bookmarks -->
@@ -679,6 +746,15 @@
           </div>
           <div class="note" style="margin-bottom:14px" data-i18n="bm.settings.note">Manage FTP credentials. Save &amp; propagate updates all linked shows (credentials only — each show keeps its own remote path).</div>
           <div id="ftp-bookmarks-list"></div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="set-section" id="set-categories">
+        <div class="form-section" >
+          <h3 data-i18n="set.cat.title">Categories and colors</h3>
+          <div class="note" style="margin-bottom:10px" data-i18n="set.cat.note">Each category gets a colour automatically, used in the shows list, Schedule and labels. Click it to pick another one, ↺ resets it to automatic.</div>
+          <div id="category-colors-list"></div>
         </div>
       </div>
 
@@ -701,8 +777,8 @@
         </div>
       </div>
 
-      <!-- Info -->
-      <div class="set-section" id="set-info">
+      <!-- Updates -->
+      <div class="set-section" id="set-updates">
         <div class="form-section">
           <h3 data-i18n="set.upd.title">Updates</h3>
           <div class="cb-row" style="margin-bottom:10px">
@@ -713,16 +789,61 @@
             <label class="toggle"><input type="checkbox" id="s-update-alert"><span class="toggle-slider"></span></label>
             <label for="s-update-alert" data-i18n="set.upd.alert">Tell me about a new version on desktop, Telegram and email (once per version; needs Telegram or email switched on)</label>
           </div>
-          <div class="note" style="margin-bottom:10px"><span data-i18n="set.upd.installed">Installed version:</span> <strong id="s-upd-current"></strong></div>
+          <div class="note" style="margin-bottom:4px"><span data-i18n="set.upd.installed">Installed version:</span> <strong id="s-upd-current"></strong></div>
+          <div class="note" style="margin-bottom:12px"><span data-i18n="set.upd.last">Last check:</span> <span id="s-upd-last"></span></div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-muted" id="btn-check-updates" data-i18n="set.upd.check">Check for updates</button>
+            <button class="btn btn-muted" id="btn-check-updates" data-i18n="set.upd.check">Check now</button>
             <button class="btn btn-sm hidden" id="btn-upd-open-settings" data-i18n="upd.download">Download and install</button>
             <button class="btn btn-sm btn-install hidden" id="btn-upd-install-settings"></button>
             <span class="update-progress hidden" id="update-progress-settings"><span id="update-progress-bar-settings"></span></span>
-            <button class="btn btn-muted" id="btn-open-manual-settings" data-i18n="manual.open">📖 User manual (PDF)</button>
+            <button class="btn btn-muted btn-sm hidden" id="btn-upd-cancel-settings" data-i18n="upd.cancel">Cancel</button>
+            <button class="btn btn-muted btn-sm hidden" id="btn-upd-remind-settings" data-i18n="upd.remind">Remind me later</button>
+            <button class="btn btn-muted btn-sm hidden" id="btn-upd-skip-settings" data-i18n="upd.skip">Skip this version</button>
+            <button class="btn btn-muted btn-sm hidden" id="btn-upd-notes-settings" data-i18n="upd.notes">Release notes</button>
             <span id="update-check-result" style="font-size:12px;color:var(--muted)"></span>
           </div>
-          <div class="note" style="margin-top:8px" data-i18n="set.upd.note">FlowCast only opens the download page: nothing is installed automatically. The check contacts GitHub (api.github.com).</div>
+          <div class="note" style="margin-top:8px" data-i18n="set.upd.note">FlowCast downloads the installer and checks it (SHA-256); it is installed only when you press “Close and install”, never while a show is being produced. The check contacts GitHub (api.github.com).</div>
+        </div>
+      </div>
+
+      <!-- Help & About -->
+      <div class="set-section" id="set-about">
+        <div class="form-section">
+          <div class="about-header">
+            <div class="about-icon"><img class="brand-logo-img" src="../assets/logo-dark.png" alt="FlowCast" style="height:44px"></div>
+            <div><div class="about-version" id="about-version" style="margin-top:8px"></div></div>
+          </div>
+          <p class="about-p" data-i18n="about.desc1">Automation system for the production and distribution of radio broadcasts and audio programs.</p>
+          <p class="about-p" data-i18n="about.desc2">Manages audio source acquisition, audio conversion, local archiving and automated FTP upload with integrated scheduling.</p>
+          <div class="about-credits">
+            <div class="about-row"><span class="about-label" data-i18n="about.dev">Developed by</span><span>Graziano Melzi · OnAir Garage</span></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.system">System</span><span id="about-system"></span></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.license">License</span><span>MIT</span></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.copyright">Copyright</span><span>© 2026 Graziano Melzi</span></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.website">Website</span><a href="https://onairgarage.com/tools/flowcast/">onairgarage.com/tools/flowcast</a></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.release">Release page</span><a href="https://github.com/djgragra/flowcast/releases">github.com/djgragra/flowcast/releases</a></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.manual">Manual</span><a href="#" id="link-about-manual" data-i18n="manual.open">📖 User manual (PDF)</a></div>
+            <div class="about-row"><span class="about-label" data-i18n="about.email">Email</span><a href="mailto:hello@onairgarage.com">hello@onairgarage.com</a></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px">
+            <button class="btn btn-muted" id="btn-copy-support" data-i18n="about.copy_support">📋 Copy support info</button>
+            <button class="btn btn-muted" id="btn-open-logs" data-i18n="about.open_logs">📂 Open logs folder</button>
+            <button class="btn btn-muted" id="btn-about-check-updates" data-i18n="about.check_updates">Check for updates</button>
+            <span id="about-copy-result" style="font-size:12px;color:var(--green)"></span>
+          </div>
+          <div class="note" style="margin-top:8px" data-i18n="about.support_note">The support info has version, system and the last errors: never your settings, addresses or passwords.</div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="about.credits.title">Credits</h3>
+          <div class="note" data-i18n="about.credits.body">Electron, node-cron, nodemailer and basic-ftp, each with its own open-source licence. Audio conversion is done by FFmpeg, installed separately.</div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="about.privacy.title">What FlowCast contacts</h3>
+          <div class="note" data-i18n="about.privacy.body">GitHub (api.github.com), to check for updates, only if the check is on. Your SMTP server and Telegram, only when switched on. The FTP servers you set up. Nothing else leaves this PC.</div>
+        </div>
+        <div class="form-section">
+          <h3 data-i18n="about.unsigned.title">First start of the installer</h3>
+          <div class="note" data-i18n="about.unsigned.body">The installers are not code-signed. On Windows, SmartScreen may say “Windows protected your PC”: choose More info → Run anyway. On macOS, open the app the first time with right-click → Open.</div>
         </div>
         <div class="form-section" style="margin-bottom:0">
           <h3 data-i18n="set.info.title">Info</h3>
@@ -739,29 +860,14 @@
   </div>
 </div>
 
-<!-- ── ABOUT MODAL ── -->
-<div class="modal-overlay hidden" id="modal-about">
+<!-- ── WHAT'S NEW MODAL ── -->
+<div class="modal-overlay hidden" id="modal-whatsnew">
   <div class="modal about-modal">
-    <div class="about-header">
-      <div class="about-icon"><img class="brand-logo-img" src="../assets/logo-dark.png" alt="FlowCast" style="height:44px"></div>
-      <div>
-        <div class="about-version" id="about-version" style="margin-top:8px"></div>
-      </div>
-    </div>
-    <div class="about-body">
-      <p data-i18n="about.desc1">Automation system for the production and distribution of radio broadcasts and audio programs.</p>
-      <p data-i18n="about.desc2">Manages audio source acquisition, audio conversion, local archiving and automated FTP upload with integrated scheduling.</p>
-      <div class="about-credits">
-        <div class="about-row"><span class="about-label" data-i18n="about.dev">Developed by</span><span>Graziano Melzi · OnAir Garage</span></div>
-        <div class="about-row"><span class="about-label" data-i18n="about.email">Email</span><a href="mailto:hello@onairgarage.com">hello@onairgarage.com</a></div>
-        <div class="about-row"><span class="about-label" data-i18n="about.website">Website</span><a href="https://onairgarage.com/tools/flowcast/">onairgarage.com</a></div>
-        <div class="about-row"><span class="about-label" data-i18n="about.license">License</span><span>MIT</span></div>
-        <div class="about-row"><span class="about-label" data-i18n="about.copyright">Copyright</span><span>© 2026 Graziano Melzi</span></div>
-        <div class="about-row"><span class="about-label" data-i18n="about.platform">Platform</span><span>Electron · Node.js · FFmpeg</span></div>
-      </div>
-    </div>
+    <h2 id="whatsnew-title" style="font-size:17px;margin-bottom:4px"></h2>
+    <div class="about-version" id="whatsnew-date" style="margin-bottom:12px"></div>
+    <ul id="whatsnew-list" style="margin:0 0 14px 18px;font-size:13px;line-height:1.6;max-height:50vh;overflow:auto"></ul>
     <div class="modal-footer">
-      <button class="btn btn-muted" id="btn-about-close" data-i18n="about.close">Close</button>
+      <button class="btn btn-primary" id="btn-whatsnew-close" data-i18n="about.close">Close</button>
     </div>
   </div>
 </div>
@@ -794,6 +900,8 @@
       <div class="help-section"><h3 data-i18n="help.s13.title"></h3><div data-i18n-html="help.s13.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s14.title"></h3><div data-i18n-html="help.s14.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s15.title"></h3><div data-i18n-html="help.s15.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s18.title"></h3><div data-i18n-html="help.s18.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s19.title"></h3><div data-i18n-html="help.s19.body"></div></div>
     </div>
   </div>
 </div>

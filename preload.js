@@ -43,17 +43,26 @@ contextBridge.exposeInMainWorld('api', {
   // App version
   getAppVersion:  ()    => ipcRenderer.invoke('get-app-version'),
 
-  // Update notice
+  // Guided update (banner, Settings → Updates)
   checkUpdates:   ()    => ipcRenderer.invoke('check-updates'),
   getUpdateInfo:  ()    => ipcRenderer.invoke('get-update-info'),
-  dismissUpdate:  (v)   => ipcRenderer.invoke('dismiss-update', v),
+  getUpdateState: ()    => ipcRenderer.invoke('update-state'),
+  remindUpdate:   ()    => ipcRenderer.invoke('update-remind'),
+  skipUpdate:     ()    => ipcRenderer.invoke('update-skip'),
   openUpdate:     ()    => ipcRenderer.invoke('open-update'),
   downloadUpdate: ()    => ipcRenderer.invoke('download-update'),
+  cancelUpdate:   ()    => ipcRenderer.invoke('cancel-update'),
   installUpdate:  ()    => ipcRenderer.invoke('install-update'),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, d) => cb(d)),
-  openManual:     ()    => ipcRenderer.invoke('open-manual'),
-  platform:       process.platform,
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, d) => cb(d)),
+  getWhatsNew:    ()    => ipcRenderer.invoke('whatsnew-get'),
+  whatsNewSeen:   ()    => ipcRenderer.invoke('whatsnew-seen'),
+  openManual:     ()    => ipcRenderer.invoke('open-manual'),
+  getSupportInfo: ()    => ipcRenderer.invoke('support-info'),
+  platform:       process.platform,
+
+  // Summary: send it now
+  sendDigestNow:  ()    => ipcRenderer.invoke('digest-send-now'),
 
   // Next run time
   nextRun:        (show) => ipcRenderer.invoke('next-run', show),

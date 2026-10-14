@@ -20,9 +20,10 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
     'show-sources':     'Show — scheda Sorgenti Audio',
     'show-schedule':    'Show — scheda Schedule',
     'show-output':      'Show — scheda Output & FTP',
-    'settings-email':   'Impostazioni — Avvisi email',
+    'settings-email':   'Impostazioni — Avvisi',
     'settings-general': 'Impostazioni — Generale',
-    'settings-info':    'Impostazioni — Info e aggiornamenti',
+    'settings-updates': 'Impostazioni — Aggiornamenti',
+    'settings-info':    'Impostazioni — Aiuto e Info',
   },
 
   chapters: [
@@ -47,7 +48,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <p>Apri il <code>.dmg</code> e trascina FlowCast in <em>Applicazioni</em>. FlowCast non è firmato da Apple, quindi la prima volta macOS lo blocca: apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> accanto al messaggio su FlowCast.</p>
 <h3>Linux</h3>
 <p>Rendi eseguibile l'AppImage (<code>chmod +x FlowCast-*.AppImage</code>) e avviala. Su alcune distribuzioni le AppImage richiedono il pacchetto <code>libfuse2</code>. L'avvio all'accesso non è disponibile su Linux.</p>
-<p>Tutti i dati (show, impostazioni, log, registro) restano quando aggiorni o reinstalli; la loro cartella è indicata in <em>Impostazioni → Info</em> (vedi capitolo 17).</p>
+<p>Tutti i dati (show, impostazioni, log, registro) restano quando aggiorni o reinstalli; la loro cartella è indicata in <em>Impostazioni → Aiuto e Info</em> (vedi capitolo 17).</p>
 <div class="note"><strong>Aggiornamento dalla versione 26.5.0 o precedenti.</strong> Quelle versioni avevano un identificativo diverso, quindi il nuovo installer non le sostituisce. Esporta un backup (capitolo 16), chiudi FlowCast dalla tray, disinstalla la vecchia FlowCast da <em>Impostazioni → App</em>, poi installa la nuova versione. Show e impostazioni restano.</div>` },
 
     { title: 'Installare FFmpeg', html: `
@@ -144,12 +145,13 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <p>Bitrate: 128k, 192k (predefinito), 256k o 320k.</p>` },
 
     { title: 'Avvisi email', html: `
-<p>In <em>Impostazioni → Email</em> FlowCast può inviare una email:</p>
+<p>In <em>Impostazioni → Avvisi</em> FlowCast può inviare una email:</p>
 <ul>
 <li><strong>su errore</strong>: quando uno show fallisce, oppure fallisce un upload, una copia o l'archiviazione;</li>
-<li><strong>se il file non è aggiornato</strong>: dopo 3 esecuzioni consecutive senza file sorgente nuovi — segno che il sistema a monte ha smesso di produrli.</li>
+<li><strong>se il file non è aggiornato</strong>: dopo 3 esecuzioni consecutive senza file sorgente nuovi — segno che il sistema a monte ha smesso di produrli;</li>
+<li><strong>quando torna a funzionare</strong>: una volta, quando uno show produce correttamente dopo che era stato mandato uno degli avvisi qui sopra (vedi <em>Ripristino e riepilogo</em> più sotto).</li>
 </ul>
-<p>Imposta server SMTP, porta, utente, password, mittente e i destinatari (più indirizzi separati da virgole), poi premi <strong>📧 Testa SMTP</strong>. Tutti i destinatari ricevono <strong>un solo</strong> messaggio, con ogni indirizzo in Bcc: non vedono gli altri. Con un utente SMTP la connessione deve essere cifrata (STARTTLS, oppure SSL/TLS fin dall'inizio sulla porta 465): FlowCast non invia mai la password in chiaro. Ogni avviso viene provato subito, poi dopo 10 secondi e dopo 60 secondi; dopo un riavvio FlowCast ricorda quali avvisi ha già inviato. Password e token non compaiono mai nei messaggi di errore né nei log.</p>
+<p>Imposta server SMTP, porta, utente, password, mittente e i destinatari (più indirizzi separati da virgole), poi premi <strong>📧 Testa SMTP</strong>. Tutti i destinatari ricevono <strong>un solo</strong> messaggio, con ogni indirizzo in Bcc: non vedono gli altri. Con un utente SMTP la connessione deve essere cifrata (STARTTLS, oppure SSL/TLS fin dall'inizio sulla porta 465): FlowCast non invia mai la password in chiaro. Ogni avviso viene provato subito, poi dopo 10 secondi e dopo 60 secondi; dopo un riavvio FlowCast ricorda quali avvisi ha già inviato. Password e token non compaiono mai nei messaggi di errore né nei log. Il pulsante 👁 accanto alla password la mostra mentre la controlli; si nasconde di nuovo ogni volta che la pagina si apre. Ogni avviso comincia con <code>[FlowCast · nome]</code>, dove il nome è quello che dai a questa installazione in <em>Impostazioni → Generale</em> (il nome del computer se vuoto): con più PC si capisce quale ha scritto.</p>
 {{shot:settings-email}}
 <p><strong>Certificati.</strong> FlowCast verifica il certificato del server di posta, e il nome del server deve corrispondere. Molti provider usano per il server SMTP un nome diverso dal tuo dominio: usa il nome indicato dal tuo provider. <em>Consenti certificati self-signed</em> serve solo per server interni di cui ti fidi.</p>
 <h3>Telegram</h3>
@@ -160,7 +162,10 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li>Incolla il token, poi premi <strong>+ Aggiungi destinatario</strong> per ogni chat ID e usa il campo <em>nota</em> per ricordare chi è (es. "Anna", "Regia") — è visibile solo a te, non viene inviata a Telegram.</li>
 <li>Scegli gli avvisi e premi <strong>✈ Testa Telegram</strong>: segnala a quali destinatari non è riuscito ad arrivare, senza fermarsi agli altri.</li>
 </ol>
-<p>Ogni destinatario riceve tutti gli avvisi, con lo stesso testo delle email.</p>` },
+<p>Ogni destinatario riceve tutti gli avvisi, con lo stesso testo delle email.</p>
+<h3>Ripristino e riepilogo</h3>
+<p><strong>Ripristino.</strong> Dopo un avviso (un errore, o una sorgente non aggiornata), la prima produzione che finisce correttamente manda <strong>un</strong> messaggio “Tornato a funzionare” sugli stessi canali. Se non era stato mandato nessun avviso, non parte niente. Funziona anche dopo un riavvio, perché cosa è stato annunciato è conservato in <code>alert-state.json</code>. Ogni canale ha il suo interruttore, <em>Avvisa quando torna a funzionare</em>.</p>
+<p><strong>Riepilogo</strong> (<em>Impostazioni → Avvisi → Riepilogo</em>, spento di default). Un testo con quello che ha fatto ogni show nelle ultime 24 ore (<em>ogni giorno</em>) o negli ultimi 7 giorni (<em>ogni lunedì</em>): produzioni, fallimenti, sorgente non aggiornata e ultima produzione. Scegli uno o più orari (ora di questo PC) e se mandarlo <em>sempre</em> o <em>solo se c'è qualcosa da controllare</em>; se non c'è niente da segnalare il testo dice “Tutto a posto”. Parte sui canali già accesi (email, Telegram), una volta per orario e giorno, anche dopo un riavvio; se il PC è spento a quell'ora, parte al primo avvio dopo. <strong>Invia ora</strong> lo manda subito, per provarlo.</p>` },
 
     { title: 'Dashboard', html: `
 <p>La <strong>barra in alto</strong>, sempre visibile, mostra l'orologio, la <em>prossima produzione</em> con il conto alla rovescia e gli show <em>in produzione</em> in quel momento.</p>
@@ -183,7 +188,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 </ul>
 {{shot:timeline}}
 <p>Sotto i pulsanti di navigazione la barra laterale elenca le <strong>prossime produzioni in coda</strong>; la prima è evidenziata. Sotto ci sono gli show, ciascuno con il suo stato (OK, Errore, Disattivo…) e la prossima esecuzione.</p>
-<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro). Ogni colore viene scelto in automatico; per cambiarlo apri <em>Impostazioni → Generale → Categorie e colori</em>, clicca il suo riquadro colore. I pulsanti a destra di ogni riga riportano il colore all'automatico, rinominano la categoria in tutti i suoi show (se il nuovo nome esiste già le due categorie si uniscono) oppure la eliminano: scegli dove spostare i suoi show (un'altra categoria o <em>Senza categoria</em>).</p>` },
+<p><strong>Categorie.</strong> Nella scheda Generale di uno show puoi indicare una categoria (es. News, Musica, Weekend). La barra laterale raggruppa gli show per categoria, ognuna con il suo colore; la dashboard li conta per categoria, e cliccando una categoria lì filtri la barra laterale (✕ toglie il filtro). Ogni colore viene scelto in automatico; per cambiarlo apri <em>Impostazioni → Categorie</em>, clicca il suo riquadro colore. I pulsanti a destra di ogni riga riportano il colore all'automatico, rinominano la categoria in tutti i suoi show (se il nuovo nome esiste già le due categorie si uniscono) oppure la eliminano: scegli dove spostare i suoi show (un'altra categoria o <em>Senza categoria</em>).</p>` },
 
     { title: 'Impostazioni', html: `
 <table>
@@ -193,43 +198,49 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <tr><td>Percorso ffmpeg e Test</td><td>vedi capitolo 3</td></tr>
 <tr><td>Timeout FTP</td><td>secondi prima che un'operazione FTP venga interrotta (predefinito 30)</td></tr>
 <tr><td>Avvia all'accesso</td><td>avvia FlowCast all'accesso, anche ridotto a icona (Windows e macOS)</td></tr>
+<tr><td>Tieni sveglio il PC</td><td>impedisce al sistema di andare in sospensione mentre FlowCast è in esecuzione</td></tr>
+<tr><td>Nome di questa installazione</td><td>compare in ogni avviso come <code>[FlowCast · nome]</code>; vuoto = il nome del computer</td></tr>
 <tr><td>Alla pressione di X</td><td>Automatico (riduce nella tray se esistono show pianificati), riduci sempre nella tray, oppure chiudi sempre</td></tr>
 <tr><td>Lingua</td><td>English, Italiano, Español</td></tr>
 <tr><td>Tema</td><td>pulsante ☀️/🌙 nella barra del titolo</td></tr>
 </table>
+<p>Le pagine delle Impostazioni sono sempre in quest'ordine: Generale, FTP, Avvisi, Categorie, Aggiornamenti, Backup, Aiuto e Info. FlowCast ricorda dimensione e posizione della finestra.</p>
 {{shot:settings-general}}` },
 
     { title: 'Tray di sistema', html: `
 <p>FlowCast resta attivo nell'area di notifica (la barra dei menu su macOS) quando chiudi la finestra, secondo l'impostazione <em>Alla pressione di X</em>. Doppio clic sull'icona per aprire la finestra. Tasto destro per <em>Esegui ora</em> su ogni show pianificato attivo, e <strong>Esci</strong> per chiudere del tutto FlowCast.</p>` },
 
     { title: 'Aggiornamenti', html: `
-<p>FlowCast controlla se c'è una nuova versione all'avvio e ogni 24 ore. Quando ce n'è una, compare una barra sotto la barra del titolo:</p>
+<p>FlowCast cerca una nuova versione 20 secondi dopo l'avvio e ogni 24 ore. <em>Impostazioni → Aggiornamenti</em> mostra quando è stato fatto l'ultimo controllo e ha <strong>Controlla ora</strong>. Quando c'è una versione disponibile compare una barra sotto la barra del titolo, con le prime righe delle note di rilascio:</p>
 <ol>
-<li>Premi <strong>Scarica e installa</strong>: FlowCast scarica l'installer nella cartella <em>Download</em> e lo verifica con il checksum SHA-256 della release.</li>
-<li>Premi <strong>Chiudi e installa</strong>: FlowCast si chiude e parte l'installer. Segui la procedura come per la prima installazione.</li>
+<li>Premi <strong>Scarica e installa</strong>: FlowCast scarica l'installer nella cartella <em>Download</em>, con una barra di avanzamento, e lo verifica con il checksum SHA-256 della release. <strong>Annulla</strong> ferma il download e toglie il file parziale; un file che non corrisponde viene cancellato e puoi premere <strong>Riprova</strong>.</li>
+<li>Premi <strong>Chiudi e installa</strong>: FlowCast salva prima una copia di sicurezza delle impostazioni (<code>backups/pre-update-&lt;versione&gt;.json</code>, ne restano le ultime 3), poi si chiude e parte l'installer. Segui la procedura come per la prima installazione. Su macOS si apre l'immagine disco: trascina FlowCast in <em>Applicazioni</em> e riaprilo. Su Linux l'AppImage viene mostrata nella sua cartella.</li>
 </ol>
-<p><strong>Ignora questa versione</strong> nasconde la barra finché non esce una versione successiva. Niente viene installato finché non premi il pulsante; se il download non riesce, <strong>Apri pagina di download</strong> apre la release su GitHub.</p>
-<p>In <em>Impostazioni → Info → Aggiornamenti</em> puoi controllare a mano o disattivare il controllo automatico. Se email o Telegram sono attivi, FlowCast ti avvisa di una nuova versione anche lì (e con una notifica sul desktop), <strong>una volta per versione</strong>; si disattiva con <em>Avvisami di una nuova versione…</em>. Se il messaggio non arriva, viene riprovato al controllo successivo.</p>
-{{shot:settings-info}}
-<p>Show e impostazioni restano. Il pulsante <strong>📖 Manuale utente (PDF)</strong> (nella Guida e in <em>Impostazioni → Info</em>) apre questo manuale per la versione installata.</p>` },
+<p>FlowCast <strong>si rifiuta di installare mentre uno show è in produzione</strong> e dice quale: premi di nuovo il pulsante a produzione finita. <strong>Ricordamelo dopo</strong> nasconde la barra per 24 ore; <strong>Salta questa versione</strong> la nasconde finché non esce una versione successiva; <strong>Note di rilascio</strong> le mostra. Niente viene installato finché non premi il pulsante.</p>
+<p>Al primo avvio dopo un aggiornamento compare <strong>FlowCast è stato aggiornato alla versione…</strong> e una finestra <strong>Novità</strong> con le modifiche di quella versione.</p>
+{{shot:settings-updates}}
+<p>Nella stessa pagina puoi disattivare il controllo automatico. Se email o Telegram sono attivi, FlowCast ti avvisa di una nuova versione anche lì (e con una notifica sul desktop), <strong>una volta per versione</strong>; si disattiva con <em>Avvisami di una nuova versione…</em>. Se il messaggio non arriva, viene riprovato al controllo successivo.</p>
+<p>Show e impostazioni restano. Il pulsante <strong>📖 Manuale utente (PDF)</strong> (nella Guida e in <em>Impostazioni → Aiuto e Info</em>) apre questo manuale per la versione installata.</p>` },
 
     { title: 'Backup e trasferimento su un altro PC', html: `
 <p>In <em>Impostazioni → Backup</em>:</p>
 <ul>
-<li><strong>💾 Esporta tutto</strong> salva show, impostazioni e bookmark FTP in un file JSON. La casella <strong>Includi password e token</strong> è spenta di default: il file allora non contiene password né token. Se la accendi compare un avviso rosso e i segreti vengono scritti in chiaro;</li>
+<li><strong>💾 Esporta tutto</strong> salva show, impostazioni, categorie e bookmark FTP in un file JSON (<code>flowcast-backup-AAAA-MM-GG.json</code>), lo stesso formato in ogni app OnAir Garage; il backup di un altro programma viene rifiutato. La casella <strong>Includi password e token</strong> è spenta di default: il file allora non contiene password né token. Se la accendi compare un avviso rosso e i segreti vengono scritti in chiaro;</li>
 <li><strong>📥 Importa</strong> carica un backup: <em>OK</em> sostituisce tutto, <em>Annulla</em> aggiunge solo gli show mancanti.</li>
 </ul>
 <p>Per spostare FlowCast: esporta sul vecchio PC, installa FlowCast sul nuovo, importa. Esporta un backup prima di ogni aggiornamento.</p>
-<div class="note"><strong>Un backup fatto senza la casella non contiene password né token:</strong> dopo l'importazione FlowCast elenca cosa va reinserito (password SMTP, token Telegram, password FTP); i segreti già presenti su questo PC per lo stesso server e utente restano. Se accendi la casella, il file li contiene in chiaro: conservalo in un posto sicuro e cancella le copie che non servono più. Su questo PC password e token sono salvati cifrati con il portachiavi di sistema.</div>` },
+<div class="note"><strong>Un backup fatto senza la casella non contiene password né token:</strong> dopo l'importazione FlowCast elenca cosa va reinserito (password SMTP, token Telegram, password FTP), comprese quelle che il file aveva lasciato fuori; i segreti già presenti su questo PC per lo stesso server e utente restano. Se accendi la casella, il file li contiene in chiaro: conservalo in un posto sicuro e cancella le copie che non servono più. Su questo PC password e token sono salvati cifrati con il portachiavi di sistema.</div>` },
 
     { title: 'File e log', html: `
-<p>La cartella dati è <code>%APPDATA%\\flowcast</code> su Windows, <code>~/Library/Application Support/flowcast</code> su macOS e <code>~/.config/flowcast</code> su Linux; <em>Impostazioni → Info</em> mostra il percorso esatto.</p>
+<p>La cartella dati è <code>%APPDATA%\\flowcast</code> su Windows, <code>~/Library/Application Support/flowcast</code> su macOS e <code>~/.config/flowcast</code> su Linux; <em>Impostazioni → Aiuto e Info</em> mostra il percorso esatto.</p>
 <table>
 <tr><th>File o cartella</th><th>Contenuto</th></tr>
 <tr><td><code>data.json</code></td><td>show, impostazioni e bookmark</td></tr>
+<tr><td><code>alert-state.json</code></td><td>cosa hanno già annunciato gli avvisi (mai nei backup)</td></tr>
 <tr><td><code>stats.json</code></td><td>statistiche giornaliere per la dashboard</td></tr>
 <tr><td><code>work/&lt;slug&gt;/</code></td><td>file di lavoro</td></tr>
-<tr><td><code>logs/</code></td><td>un log per show, <code>_system.log</code> per gli errori generali</td></tr>
+<tr><td><code>logs/</code></td><td>un log per show e un file al giorno (<code>flowcast_gg-mm-aaaa.log</code>, fino a 5 MB, gli ultimi 7 giorni)</td></tr>
+<tr><td><code>backups/</code></td><td>una copia di <code>data.json</code> fatta prima di ogni aggiornamento (le ultime 3; ancora cifrate, si aprono solo su questo PC)</td></tr>
 <tr><td><code>history/</code></td><td>registro delle esecuzioni</td></tr>
 </table>
 <p>La <strong>Console</strong> in fondo alla finestra mostra in tempo reale l'output di ogni produzione; clicca la sua barra per aprirla o chiuderla.</p>
@@ -258,7 +269,9 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li>Codice sorgente e release: <code>github.com/djgragra/flowcast</code></li>
 <li>Contatto: <code>hello@onairgarage.com</code></li>
 </ul>
-<p><strong>Privacy.</strong> FlowCast non raccoglie dati di utilizzo. Oltre ai server FTP e SMTP che configuri, contatta solo GitHub (<code>api.github.com</code>) per il controllo aggiornamenti, che si può disattivare.</p>
+<p><strong>Privacy.</strong> FlowCast non raccoglie dati di utilizzo. Oltre ai server FTP e SMTP che configuri (e Telegram, se lo accendi), contatta solo GitHub (<code>api.github.com</code>) per il controllo aggiornamenti, che si può disattivare.</p>
+<p><strong>Aiuto e Info</strong> (<em>Impostazioni</em>, o il pulsante ℹ) ha la versione, il sistema, i link e due pulsanti per l'assistenza: <strong>📋 Copia info per assistenza</strong> mette negli appunti versione, sistema, lingua, nome dell'installazione, data dell'ultimo controllo aggiornamenti e ultimo errore — mai le tue impostazioni, indirizzi o password — da incollare in una email a <code>hello@onairgarage.com</code>; <strong>📂 Apri cartella log</strong> apre i file di log giornalieri.</p>
+{{shot:settings-info}}
 <p><strong>Licenza.</strong> Licenza MIT, © 2026 Graziano Melzi. FFmpeg è un progetto separato, con licenza LGPL/GPL, e non è distribuito con FlowCast.</p>` },
   ]
 };

@@ -11,8 +11,8 @@ test('export without the box: no password, no token anywhere in the file', () =>
   const exp = buildExport(sampleData());
   assert.equal(exp.includesSecrets, false);
   assert.deepEqual(allSecretsIn(JSON.stringify(exp)), []);
-  assert.equal(exp.settings.email.smtp.password, '');
-  assert.equal(exp.settings.telegram.token, '');
+  assert.equal(exp.settings.notifications.email.pass, '');
+  assert.equal(exp.settings.notifications.telegram.botToken, '');
   assert.equal(exp.shows[0].ftp.password, '');
   assert.equal(exp.ftpBookmarks[0].password, '');
   assert.equal(exp.shows[0].ftp.host, 'ftp.example.org');                   // the rest is intact
@@ -27,15 +27,15 @@ test('export with the box: the secrets are written in plain text (decrypted), an
 
 test('export does not touch what the app holds', () => {
   const d = sampleData(); buildExport(d);
-  assert.equal(d.settings.email.smtp.password, SECRETS.smtp);
+  assert.equal(d.settings.notifications.email.pass, SECRETS.smtp);
 });
 
 test('import of a file without secrets keeps this PC\'s secrets for the same server and user', () => {
   const current = sampleData();
   const file = buildExport(sampleData());
   const plan = prepareImport(current, file, { replace: true });
-  assert.equal(plan.settings.email.smtp.password, SECRETS.smtp);
-  assert.equal(plan.settings.telegram.token, SECRETS.token);
+  assert.equal(plan.settings.notifications.email.pass, SECRETS.smtp);
+  assert.equal(plan.settings.notifications.telegram.botToken, SECRETS.token);
   assert.equal(plan.shows[0].ftp.password, SECRETS.ftp);
   assert.equal(plan.ftpBookmarks[0].password, SECRETS.bm);
   assert.deepEqual(plan.missing, []);
@@ -47,21 +47,21 @@ test('import on another PC: nothing to keep, the app lists what must be typed ag
   assert.deepEqual(plan.missing.map(m => m.kind).sort(), ['ftp-bookmark', 'ftp-show', 'smtp', 'telegram']);
   assert.equal(plan.missing.find(m => m.kind === 'ftp-show').label, 'Morning');
   // a password for another account is not carried over
-  const other = sampleData(); other.settings.email.smtp.user = 'someone-else';
+  const other = sampleData(); other.settings.notifications.email.user = 'someone-else';
   const p2 = prepareImport(other, file, { replace: true });
-  assert.equal(p2.settings.email.smtp.password, '');
+  assert.equal(p2.settings.notifications.email.pass, '');
   assert.ok(p2.missing.some(m => m.kind === 'smtp'));
 });
 
 test('import of an older file (with secrets) still works, and a sealed value from another machine is dropped', () => {
   const old = buildExport(sampleData(), { includeSecrets: true });
   const plan = prepareImport({ settings: {}, shows: [], ftpBookmarks: [] }, old, { replace: true });
-  assert.equal(plan.settings.email.smtp.password, SECRETS.smtp);
+  assert.equal(plan.settings.notifications.email.pass, SECRETS.smtp);
   assert.deepEqual(plan.missing, []);
   const sealed = buildExport(sampleData(), { includeSecrets: true });
-  sealed.settings.telegram.token = 'enc:v1:AAAA';
+  sealed.settings.notifications.telegram.botToken = 'enc:v1:AAAA';
   const p2 = prepareImport({ settings: {}, shows: [], ftpBookmarks: [] }, sealed, { replace: true });
-  assert.equal(p2.settings.telegram.token, '');
+  assert.equal(p2.settings.notifications.telegram.botToken, '');
   assert.ok(p2.missing.some(m => m.kind === 'telegram'));
 });
 

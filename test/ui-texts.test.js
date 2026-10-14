@@ -17,7 +17,7 @@ test('texts: English, Italian and Spanish have exactly the same keys (main proce
 });
 
 test('texts: every key the code asks for exists, and no text is empty', () => {
-  const src = ['src/notify.js', 'src/store.js', 'src/ftp-client.js', 'main.js'].map(read).join('\n');
+  const src = ['src/notify.js', 'src/digest.js', 'src/store.js', 'src/ftp-client.js', 'main.js'].map(read).join('\n');
   const mainKeys = [...src.matchAll(/\b(?:t|mt)\('([\w.]+)'/g)].map(m => m[1]);
   for (const l of ['en', 'it', 'es']) {
     const loc = mainLocale(l);
@@ -37,7 +37,7 @@ test('texts: every key the code asks for exists, and no text is empty', () => {
 
 test('email settings: same layout as the other OnAir Garage apps (server, port, user, password, sender, recipients in one field, TLS box, test button)', () => {
   const html = read('renderer/index.html');
-  const section = html.slice(html.indexOf('id="set-email"'), html.indexOf('id="set-backup"'));
+  const section = html.slice(html.indexOf('id="set-alerts"'), html.indexOf('id="set-backup"'));
   const ids = [...section.matchAll(/\bid="([\w-]+)"/g)].map(m => m[1]);
   const order = ['s-email-enabled', 's-smtp-host', 's-smtp-port', 's-smtp-user', 's-smtp-pass', 's-smtp-from', 's-email-recipients', 's-smtp-secure'];
   const pos = order.map(id => ids.indexOf(id));
