@@ -125,7 +125,7 @@ npm run manual         # user manuals (PDF, EN and IT) in dist/
 npm run release:local  # download a published release into release/<version>/ and verify it
 ```
 
-Releases are built by GitHub Actions (`.github/workflows/build-installers.yml`, started by hand with the version in `release_version`) on Windows, macOS and Linux runners. The workflow checks that the version matches `package.json` and is newer than the latest release, runs the tests, creates the tag, then attaches the installers, the manuals, a zip with everything and `SHA256SUMS.txt` to the GitHub Release.
+Releases are built by GitHub Actions (`.github/workflows/build-installers.yml`, started by hand with the version in `release_version`, or by pushing a `v*` tag) on Windows, macOS and Linux runners. The workflow checks that the version matches `package.json` and is newer than the latest release, runs the tests, creates the tag, then attaches the installers, the manuals, a zip with everything and `SHA256SUMS.txt` to the GitHub Release.
 
 ## Contact
 
