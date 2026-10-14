@@ -100,6 +100,10 @@ const SHOTS = [
   ['04-settings-dark',     'dark',  "openSettings('general')"],
   ['05-dashboard-light',   'light', "closeSettings(); document.getElementById('nav-dashboard').click()"],
   ['06-schedule-light',    'light', "document.getElementById('nav-schedule').click(); document.querySelector('[data-pal=shows]').click()"],
+  // Settings pages (the 'no keystore' warning shown on Linux is hidden: on Windows and macOS it does not appear)
+  ['07-settings-alerts-dark', 'dark', "openSettings('alerts'); await new Promise(r => setTimeout(r, 500)); document.getElementById('secrets-warning').classList.add('hidden')"],
+  ['08-categories-dark',   'dark',  "openSettings('categories')"],
+  ['09-updates-dark',      'dark',  "openSettings('updates')"],
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
