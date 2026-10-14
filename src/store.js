@@ -4,7 +4,7 @@ const path = require('path');
 const { app } = require('electron');
 const { dateLocale } = require('./i18n');
 const { PLAIN_BOX, sealData, openData } = require('./secrets');
-const { parseRecipients } = require('./notify');
+const { DEFAULTS, normalizeSettings } = require('./settings');
 
 const DATA_DIR    = app.getPath('userData');
 const DATA_FILE   = path.join(DATA_DIR, 'data.json');
@@ -22,33 +22,9 @@ function ensureDirs() {
   });
 }
 
-const DEFAULTS = {
-  settings: {
-    baseWav:     '',
-    baseArchive: '',
-    ffmpegPath:  'ffmpeg',
-    ftpTimeout:  30,
-    autostart:   false,
-    startHidden: false,
-    checkUpdates:    true,
-    updateAlert:     true,
-    telegram: { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false },
-    updateRepo:      'djgragra/flowcast',
-    updateDismissed: '',
-    email: {
-      enabled:              false,
-      smtp: { host: '', port: 587, user: '', password: '', secure: false },
-      from:                 '',
-      recipients:           [],
-      onError:              true,
-      onNoUpdate:           false,
-      noUpdateStreakThreshold: 3
-    }
-  },
-  shows: []
-};
-
 let _data = null;
+let _hadFile = false;   // a data.json existed before this start (to tell an update from a new installation)
+function hadSettingsFile() { return _hadFile; }
 
 // Passwords and tokens are encrypted on disk when the system keystore allows it (src/secrets.js).
 // Everywhere else in the app they are plain text.
@@ -58,45 +34,11 @@ function setSecretBox(box) { _box = box || PLAIN_BOX; }
 function secretsEncrypted() { return !!_box.available(); }
 function getSecretStatus() { return { ..._secretStatus, encrypted: secretsEncrypted() }; }
 
-// ── Settings migration ────────────────────────────────────────────────────────
-// Defaults only apply to a new data.json, and imported backups may carry values from
-// other installs. updateRepo is not editable in the UI, so anything that is empty,
-// not a valid 'owner/repo' or a retired repository is reset to the current one.
-const UPDATE_REPO          = 'djgragra/flowcast';
-const RETIRED_UPDATE_REPOS = ['djgragra/flowcast_p'];   // compared lowercase
-
-function normalizeSettings(settings) {
-  const repo = typeof settings.updateRepo === 'string' ? settings.updateRepo.trim() : '';
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo) || RETIRED_UPDATE_REPOS.includes(repo.toLowerCase())) {
-    settings.updateRepo = UPDATE_REPO;
-  }
-  if (typeof settings.checkUpdates !== 'boolean') settings.checkUpdates = true;
-  if (typeof settings.updateAlert !== 'boolean') settings.updateAlert = true;
-  // Email: older versions kept up to three addresses in one text, one per line
-  if (!settings.email || typeof settings.email !== 'object') settings.email = JSON.parse(JSON.stringify(DEFAULTS.settings.email));
-  if (!settings.email.smtp || typeof settings.email.smtp !== 'object') settings.email.smtp = { ...DEFAULTS.settings.email.smtp };
-  settings.email.recipients = parseRecipients(settings.email.recipients);
-  if (typeof settings.updateDismissed !== 'string') settings.updateDismissed = '';
-  if (!settings.telegram || typeof settings.telegram !== 'object') {
-    settings.telegram = { enabled: false, token: '', recipients: [], onError: true, onNoUpdate: false };
-  } else {
-    const tg = settings.telegram;
-    if (!Array.isArray(tg.recipients)) tg.recipients = [];
-    // Pre-26.9.7 installs stored a single chatId: migrate it into recipients once
-    if (!tg.recipients.length && typeof tg.chatId === 'string' && tg.chatId.trim()) {
-      tg.recipients = [{ chatId: tg.chatId.trim(), note: '' }];
-    }
-    delete tg.chatId;
-    if (typeof tg.onError !== 'boolean') tg.onError = true;
-    if (typeof tg.onNoUpdate !== 'boolean') tg.onNoUpdate = false;
-  }
-  return settings;
-}
-
 function load() {
   // ── Migration: copy data from old "Podcast Manager" userData dir if upgrading ──
 
   ensureDirs();
+  _hadFile = fs.existsSync(DATA_FILE);
   if (!fs.existsSync(DATA_FILE)) {
     _data = JSON.parse(JSON.stringify(DEFAULTS));
     save();
@@ -109,11 +51,13 @@ function load() {
   } catch(e) {
     _data = JSON.parse(JSON.stringify(DEFAULTS));
   }
-  _secretStatus = openData(_data, _box);
+  // first the shape (old keys move to the common ones, values still sealed), then the secrets are opened
   const before = JSON.stringify(_data.settings);
   normalizeSettings(_data.settings);
+  const migrated = JSON.stringify(_data.settings) !== before;
+  _secretStatus = openData(_data, _box);
   // settings changed by the migration, or secrets still stored in plain text that can now be encrypted
-  if (JSON.stringify(_data.settings) !== before || (_secretStatus.plain > 0 && _box.available())) save();
+  if (migrated || (_secretStatus.plain > 0 && _box.available())) save();
   return _data;
 }
 
@@ -174,10 +118,20 @@ function logFilePath(showId) {
 const LOG_MAX_LINES  = 1000;
 const LOG_TRIM_LINES = 800;
 
-function appendLog(showId, line) {
+// The daily log (src/logs.js: one file per day, 5 MB, 7 days) receives every line too; the per-show files
+// below are what the Log tab of a show reads.
+let _logger = null;
+function setLogger(l) { _logger = l; }
+
+function appendLog(showId, line, level = 'info') {
   const ts  = new Date().toLocaleString(dateLocale());
   const msg = `[${ts}] ${line}\n`;
-  const f   = logFilePath(showId);
+  if (_logger) {
+    const sh = showId === '_system' ? null : (_data && _data.shows.find(x => x.id === showId));
+    _logger.log(level, line, sh ? sh.name : (showId === '_system' ? 'app' : showId));
+  }
+  if (showId === '_system') return msg;
+  const f = logFilePath(showId);
 
   // Rotation: if file exceeds LOG_MAX_LINES, keep only LOG_TRIM_LINES
   if (fs.existsSync(f)) {
@@ -262,11 +216,11 @@ function deleteFtpBookmark(id) {
 }
 
 module.exports = {
-  load, save, getData, setSecretBox, secretsEncrypted, getSecretStatus,
+  load, save, hadSettingsFile, getDataFile: () => DATA_FILE, getData, setSecretBox, secretsEncrypted, getSecretStatus,
   getSettings, saveSettings,
   getShows, getShow, saveShow, deleteShow,
   getShowWorkDir,
-  appendLog, readLog, clearLog,
+  setLogger, appendLog, readLog, clearLog,
   appendHistory, readHistory, clearHistory,
   getFtpBookmarks, saveFtpBookmark, deleteFtpBookmark,
   getLogsDir, getDataDir, getHistoryDir

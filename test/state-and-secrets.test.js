@@ -86,7 +86,7 @@ test('new version: not announced when the option is off or no channel is on', as
   const st = createAlertState(path.join(dir, 's.json')).load();
   const base = sampleData().settings;
   assert.deepEqual(await alerterWith(st, { ...base, updateAlert: false }, sent).notifyUpdate(INFO, URL), []);
-  const none = { ...base, email: { ...base.email, enabled: false }, telegram: { ...base.telegram, enabled: false } };
+  const none = { ...base, notifications: { ...base.notifications, email: { ...base.notifications.email, enabled: false }, telegram: { ...base.notifications.telegram, enabled: false } } };
   assert.deepEqual(await alerterWith(st, none, sent).notifyUpdate(INFO, URL), []);
   assert.deepEqual(await alerterWith(st, base, sent).notifyUpdate({ ...INFO, available: false }, URL), []);
   assert.equal(sent.length, 0);
@@ -100,12 +100,12 @@ test('new version: a failed send is marked only after it works, and tried again 
     getSettings: () => settings, state: st, sleep: async () => {},
     deps: { sendEmail: async () => { if (!emailUp) throw new Error('smtp down'); got.push('email'); }, sendTelegram: async () => { got.push('tg'); } }
   });
-  settings.telegram.enabled = false;                                      // only email is on
+  settings.notifications.telegram.enabled = false;                                      // only email is on
   assert.deepEqual((await a.notifyUpdate(INFO, URL)).filter(c => c !== 'desktop'), []);   // 3 attempts, all failed
   assert.deepEqual(st.getUpdateDone('26.10.1'), ['desktop']);            // email NOT marked
   emailUp = true;
   assert.deepEqual((await a.notifyUpdate(INFO, URL)).filter(c => c !== 'desktop'), ['email']);   // next check: sent
-  settings.telegram.enabled = true;                                       // switched on afterwards
+  settings.notifications.telegram.enabled = true;                                       // switched on afterwards
   assert.deepEqual(await a.notifyUpdate(INFO, URL), ['telegram']);
   assert.deepEqual(got, ['email', 'tg']);
   assert.deepEqual(await a.notifyUpdate(INFO, URL), []);
@@ -133,8 +133,8 @@ test('secrets: with a keystore none of the passwords or the token is readable in
   const again = freshStore(dir);
   again.setSecretBox(createSecretBox(fakeSafeStorage()));
   again.load();
-  assert.equal(again.getSettings().email.smtp.password, SECRETS.smtp);
-  assert.equal(again.getSettings().telegram.token, SECRETS.token);
+  assert.equal(again.getSettings().notifications.email.pass, SECRETS.smtp);
+  assert.equal(again.getSettings().notifications.telegram.botToken, SECRETS.token);
   assert.equal(again.getShow('s1').ftp.password, SECRETS.ftp);
   assert.equal(again.getFtpBookmarks()[0].password, SECRETS.bm);
   assert.equal(again.getSecretStatus().encrypted, true);
@@ -149,7 +149,7 @@ test('secrets: values saved in plain text by older versions are encrypted at the
   store.setSecretBox(createSecretBox(fakeSafeStorage()));
   store.load();
   for (const v of Object.values(SECRETS)) assert.ok(!rawFile(dir).includes(v));
-  assert.equal(store.getSettings().email.smtp.password, SECRETS.smtp);   // and the app still sees them
+  assert.equal(store.getSettings().notifications.email.pass, SECRETS.smtp);   // and the app still sees them
 });
 
 test('secrets: without a keystore they are kept as they are and the app can say so', () => {
@@ -166,16 +166,16 @@ test('secrets: values encrypted on another PC cannot be read: they come back emp
   const other = freshStore(dir);
   other.setSecretBox(createSecretBox(fakeSafeStorage({ locked: true })));
   other.load();
-  assert.equal(other.getSettings().email.smtp.password, '');
+  assert.equal(other.getSettings().notifications.email.pass, '');
   assert.equal(other.getSecretStatus().unreadable, 4);
 });
 
 test('settings: the recipients of older versions (text, one per line) become a clean list', () => {
   const dir = tmpDir();
-  const d = sampleData(); d.settings.email.recipients = 'a@example.org\nb@example.org\nnope\na@example.org';
+  const d = sampleData(); d.settings.notifications.email.recipients = 'a@example.org\nb@example.org\nnope\na@example.org';
   fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify(d));
   const store = freshStore(dir);
   store.load();
-  assert.deepEqual(store.getSettings().email.recipients, ['a@example.org', 'b@example.org']);
+  assert.deepEqual(store.getSettings().notifications.email.recipients, ['a@example.org', 'b@example.org']);
   assert.equal(store.getSettings().updateAlert, true);
 });

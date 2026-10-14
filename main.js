@@ -1,5 +1,6 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, Notification, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell, Notification, safeStorage, net, powerSaveBlocker, screen } = require('electron');
+const os             = require('os');
 const path           = require('path');
 const fs             = require('fs');
 // Development only: `npm run manual` renders the PDF manual with screenshots of the app.
@@ -17,6 +18,9 @@ const backup         = require('./src/backup');
 const categories     = require('./src/categories');
 const { createSecretBox, maskSecrets } = require('./src/secrets');
 const { createAlertState } = require('./src/alert-state');
+const { createLogger } = require('./src/logs');
+const { buildSupportInfo } = require('./src/support');
+const { passedSlotKey } = require('./src/digest');
 const i18n           = require('./src/i18n');
 const { resolveFfmpeg } = require('./src/ffmpeg-path');
 const updater        = require('./src/updater');
@@ -67,11 +71,11 @@ app.on('second-instance', () => {
 // ── Global error handlers ─────────────────────────────────────────────────────
 process.on('uncaughtException',  (e) => {
   console.error('[FATAL]', e.message);
-  try { store.appendLog('_system', `FATAL uncaughtException: ${e.message}\n${e.stack}`); } catch(_) {}
+  try { store.appendLog('_system', `FATAL uncaughtException: ${e.message}\n${e.stack}`, 'error'); } catch(_) {}
 });
 process.on('unhandledRejection', (reason) => {
   console.error('[UNHANDLED]', reason);
-  try { store.appendLog('_system', `UNHANDLED rejection: ${reason}`); } catch(_) {}
+  try { store.appendLog('_system', `UNHANDLED rejection: ${reason}`, 'error'); } catch(_) {}
 });
 
 // --hidden arg: passed by Windows autostart when startHidden is enabled
@@ -88,10 +92,38 @@ let alerter    = null;
 
 // ── Window ────────────────────────────────────────────────────────────────────
 
+// Window size and position are remembered (settings.window); a position that is no longer on any screen is dropped.
+function savedWindowBounds() {
+  const w = store.getSettings().window;
+  if (!w) return { width: 1200, height: 800 };
+  const out = { width: Math.max(900, w.width), height: Math.max(600, w.height) };
+  if (Number.isFinite(w.x) && Number.isFinite(w.y)) {
+    try {
+      const onScreen = screen.getAllDisplays().some(d => {
+        const b = d.workArea;
+        return w.x + 100 > b.x && w.x < b.x + b.width - 100 && w.y + 50 > b.y && w.y < b.y + b.height - 50;
+      });
+      if (onScreen) { out.x = w.x; out.y = w.y; }
+    } catch(_) {}
+  }
+  return out;
+}
+
+let _saveWindowTimer = null;
+function rememberWindow() {
+  clearTimeout(_saveWindowTimer);
+  _saveWindowTimer = setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized()) return;
+    const maximized = mainWindow.isMaximized();
+    const b = maximized ? (store.getSettings().window || mainWindow.getNormalBounds()) : mainWindow.getBounds();
+    try { store.saveSettings({ window: { x: b.x, y: b.y, width: b.width, height: b.height, maximized } }); } catch(_) {}
+  }, 600);
+}
+
 function createWindow() {
+  const saved = savedWindowBounds();
   mainWindow = new BrowserWindow({
-    width:  1200,
-    height: 800,
+    ...saved,
     minWidth: 900,
     minHeight: 600,
     webPreferences: {
@@ -107,7 +139,9 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
+  if ((store.getSettings().window || {}).maximized) mainWindow.maximize();
   mainWindow.once('ready-to-show', () => { if (!START_HIDDEN) mainWindow.show(); });
+  for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) mainWindow.on(ev, rememberWindow);
 
   // External links (About: website, mailto) open in the system browser/mail client
   const openExternal = (url) => {
@@ -202,6 +236,15 @@ function applyLoginItem(s) {
   } catch(_) {}
 }
 
+// Keep the PC awake while FlowCast runs (option): the system may still turn the screen off
+let _awakeId = null;
+function applyKeepAwake(s) {
+  try {
+    if (s.keepAwake && _awakeId === null) _awakeId = powerSaveBlocker.start('prevent-app-suspension');
+    else if (!s.keepAwake && _awakeId !== null) { powerSaveBlocker.stop(_awakeId); _awakeId = null; }
+  } catch(_) {}
+}
+
 // ── Tray ──────────────────────────────────────────────────────────────────────
 
 function createTray() {
@@ -252,7 +295,8 @@ function notifyStatus(showId, status) {
 }
 
 function logLine(showId, line) {
-  const msg = store.appendLog(showId, line);
+  const level = /\b(ERROR|FATAL)\b/.test(line) ? 'error' : /\bWARNING\b/.test(line) ? 'warn' : 'info';
+  const msg = store.appendLog(showId, line, level);
   if (mainWindow) mainWindow.webContents.send('log-line', { id: showId, line: msg });
 }
 
@@ -326,8 +370,8 @@ async function runShow(showId, force = false, dryRun = false) {
     tray && tray.setToolTip(`FlowCast — ${show.name}: ${finalStatus}`);
     updateTrayMenu();
 
-    // Windows notification
-    if (result.action === 'produced' && Notification.isSupported()) {
+    // Desktop notification (Settings → Alerts → Desktop)
+    if (result.action === 'produced' && desktopOn() && Notification.isSupported()) {
       const hasOpError = lastDetails && Object.values(lastDetails).includes('error');
       new Notification({
         title: `FlowCast — ${show.name}${dryRun ? ' [DRY RUN]' : ''}`,
@@ -346,6 +390,9 @@ async function runShow(showId, force = false, dryRun = false) {
         const hasOpError = Object.values(lastDetails).includes('error');
         if (hasOpError) {
           sendAlerts(show, 'error', { ops: lastDetails });
+        } else {
+          // a production without a failed step: if an alert had gone out for this show, say it is back to normal
+          alerter.recovered(show).catch(e => store.appendLog('_system', `Recovery alert failed: ${maskSecrets(e.message, secretsInUse())}`, 'warn'));
         }
       }
       // counts the runs in a row with the source not updated (kept across restarts) and alerts at the threshold
@@ -365,8 +412,8 @@ async function runShow(showId, force = false, dryRun = false) {
     }
     if (mainWindow) mainWindow.webContents.send('show-updated', { id: showId, lastRun: now, lastResult: 'error', lastDetails: null });
 
-    // Windows notification
-    if (Notification.isSupported()) {
+    // Desktop notification
+    if (desktopOn() && Notification.isSupported()) {
       new Notification({
         title: mt('notif.err_title', { name: show.name }),
         body: e.message,
@@ -387,17 +434,22 @@ async function runShow(showId, force = false, dryRun = false) {
 // Email and Telegram alerts (each channel has its own on/off settings; each is tried again after 10 s and 60 s)
 function sendAlerts(show, type, details) {
   alerter.alertShow(show, type, details)
-    .catch(e => store.appendLog('_system', `Alert failed: ${maskSecrets(e.message, secretsInUse())}`));
+    .catch(e => store.appendLog('_system', `Alert failed: ${maskSecrets(e.message, secretsInUse())}`, 'warn'));
 }
 
 // Every password and token in use: masked in anything that reaches a log or a message
 function secretsInUse() {
-  const s = store.getSettings();
-  const out = [s.email && s.email.smtp && s.email.smtp.password, s.telegram && s.telegram.token];
+  const n = store.getSettings().notifications || {};
+  const out = [n.email && n.email.pass, n.telegram && n.telegram.botToken];
   store.getShows().forEach(sh => out.push(sh.ftp && sh.ftp.password));
   store.getFtpBookmarks().forEach(b => out.push(b.password));
   return out.filter(Boolean);
 }
+
+const desktopOn = () => (store.getSettings().notifications || {}).desktop !== false;
+
+// [FlowCast · installation name] in front of every alert (apps/COMMON-FEATURES.md, 5.3)
+const currentPrefix = () => notify.alertPrefix(store.getSettings(), os.hostname());
 
 function desktopNotice(title, body) {
   if (Notification.isSupported()) {
@@ -508,11 +560,28 @@ function startLiveScheduleCheck() {
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 
 ipcMain.handle('get-settings',   ()    => store.getSettings());
+// The window sends back the whole settings object it holds: what only the main process keeps (update choices,
+// window position, version seen) must not be overwritten by an older copy.
+const MAIN_ONLY_KEYS = ['updateState', 'lastSeenVersion', 'window'];
+
+// Turning the summary on (or changing its times) must not send the times that have already passed today
+function holdDigestSlots(before, after) {
+  const b = before || {}, a = after || {};
+  if (a.enabled && (!b.enabled || JSON.stringify(b.times) !== JSON.stringify(a.times) || b.frequency !== a.frequency)) {
+    alertState.markDigestSent(passedSlotKey(a.times, new Date()));
+  }
+}
+
 ipcMain.handle('save-settings',  (_, s) => {
-  store.saveSettings(s);
+  const incoming = { ...s };
+  for (const k of MAIN_ONLY_KEYS) delete incoming[k];
+  const before = store.getSettings().digest;
+  store.saveSettings(incoming);
+  holdDigestSlots(before, store.getSettings().digest);
   _loadMainLocale();
   updateTrayMenu();
-  applyLoginItem(s);
+  applyLoginItem(store.getSettings());
+  applyKeepAwake(store.getSettings());
   return true;
 });
 
@@ -572,10 +641,9 @@ ipcMain.handle('clear-history', (_, id) => { store.clearHistory(id); return true
 // includeSecrets: the "Include passwords and tokens" box (off by default). Off, the file has no secrets.
 ipcMain.handle('export-config', async (_, includeSecrets) => {
   const withSecrets = includeSecrets === true;
-  const date = new Date().toISOString().slice(0, 10);
   const result = await dialog.showSaveDialog(mainWindow, {
     title: mt('dlg.export_config'),
-    defaultPath: `flowcast-backup-${date}.json`,
+    defaultPath: backup.backupFileName(),
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
   if (result.canceled) return false;
@@ -586,6 +654,8 @@ ipcMain.handle('export-config', async (_, includeSecrets) => {
   return true;
 });
 
+// Returns the parsed file, or { error } with a code the window turns into a sentence:
+// 'invalid' (not a backup), 'too-big', 'wrong-app' (a backup of another OnAir Garage app)
 ipcMain.handle('import-config', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: mt('dlg.import_config'),
@@ -594,9 +664,14 @@ ipcMain.handle('import-config', async () => {
   });
   if (result.canceled) return null;
   try {
-    return JSON.parse(fs.readFileSync(result.filePaths[0], 'utf-8'));
+    const file = result.filePaths[0];
+    if (fs.statSync(file).size > backup.MAX_BACKUP_BYTES) return { error: 'too-big' };
+    const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return { error: 'invalid' };
+    if (data.app !== undefined && data.app !== backup.BACKUP_APP) return { error: 'wrong-app' };
+    return data;
   } catch(e) {
-    return { error: e.message };
+    return { error: 'invalid' };
   }
 });
 
@@ -606,6 +681,8 @@ ipcMain.handle('apply-import', (_, { data, replace }) => {
   const plan = backup.prepareImport(
     { settings: store.getSettings(), shows: store.getShows(), ftpBookmarks: store.getFtpBookmarks() },
     data || {}, { replace: replace === true });
+  if (!plan.ok) return { error: plan.error };
+  const digestBefore = store.getSettings().digest;
   for (const show of plan.shows) {
     store.saveShow(show);
     scheduler.cancelShow(show.id);
@@ -614,8 +691,10 @@ ipcMain.handle('apply-import', (_, { data, replace }) => {
   for (const bm of plan.ftpBookmarks) store.saveFtpBookmark(bm);
   if (plan.settings) {
     store.saveSettings(plan.settings);
+    holdDigestSlots(digestBefore, store.getSettings().digest);
     _loadMainLocale();
     applyLoginItem(store.getSettings());
+    applyKeepAwake(store.getSettings());
   }
   updateTrayMenu();
   return { shows: plan.shows.length, settings: !!plan.settings, missing: plan.missing };
@@ -698,7 +777,15 @@ ipcMain.handle('ftp-browse', async (_, { host, port, user, password, secure, pat
 });
 
 ipcMain.handle('test-email', (_, cfg) => notify.testEmailConnection(cfg));
-ipcMain.handle('test-telegram', (_, cfg) => notify.testTelegramConnection(cfg));
+ipcMain.handle('test-telegram', (_, cfg) => notify.testTelegramConnection(cfg, undefined, currentPrefix()));
+// "Send now": the summary goes out at once on the channels that are on, whatever the schedule says
+ipcMain.handle('digest-send-now', async () => {
+  const r = await alerter.sendDigest({ force: true });
+  const ok = Object.values(r.out || {});
+  if (!ok.length) return { success: false, message: mt('digest.no_channel') };
+  const bad = ok.filter(x => !x.ok);
+  return bad.length ? { success: false, message: maskSecrets(bad[0].error || '', secretsInUse()) } : { success: true, message: mt('digest.sent_ok') };
+});
 
 // ── Dashboard data ────────────────────────────────────────────────────────────
 
@@ -727,33 +814,59 @@ ipcMain.handle('get-activity', (_, limit = 50) => {
 });
 
 ipcMain.handle('get-running', () => [..._runStatus.entries()].filter(([, st]) => st === 'running').map(([id]) => id));
-ipcMain.handle('get-platform', () => ({ platform: process.platform, dataDir: store.getDataDir(), secretsEncrypted: store.secretsEncrypted() }));
+ipcMain.handle('get-platform', () => ({ platform: process.platform, dataDir: store.getDataDir(), secretsEncrypted: store.secretsEncrypted(), hostname: os.hostname() }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 // ── Updates ───────────────────────────────────────────────────────────────────
-// Asks GitHub for the latest release; the renderer shows a banner. On request the
-// installer is downloaded to the Downloads folder and verified (SHA-256); it only
-// runs when the user presses "Close and install".
+// Guided update (apps/COMMON-FEATURES.md, section 4; src/updater.js). Asks GitHub for the latest release; the window
+// shows a banner with Download and install / Remind me later / Skip this version / Release notes. The installer is
+// downloaded to the Downloads folder and verified (SHA-256); it only runs when the user presses "Close and install",
+// never while a show is being produced, and a safety copy of data.json is made first.
 
 const UPDATE_FIRST_CHECK_MS = 20 * 1000;          // after the 8s catch-up runs
 const UPDATE_INTERVAL_MS    = 24 * 3600 * 1000;
-let _lastUpdateInfo = null;
+let _lastUpdateInfo      = null;
+let _downloadedInstaller = null;   // { version, file } once downloaded and verified
+let _downloadAbort       = null;   // AbortController of the download in progress
+let _lastError           = null;   // { t, message } last error line of the log (for "Copy support info")
+
+const updateState = () => store.getSettings().updateState || {};
+function setUpdateState(patch) { store.saveSettings({ updateState: { ...updateState(), ...patch } }); }
+
+// What the window needs to know (no download URLs)
+function publicInfo(info) {
+  if (!info) return null;
+  return { ok: info.ok, current: info.current, latest: info.latest, available: !!info.available, url: info.url, notes: info.notes,
+           noRelease: !!info.noRelease, error: info.error, hasInstaller: !!info.installer };
+}
+
+function updateView(info) {
+  const d = _downloadedInstaller;
+  return {
+    info: publicInfo(info),
+    banner: updater.bannerState(info, updateState()),   // 'show' | 'snoozed' | 'skipped' | 'none'
+    lastCheck: updateState().lastCheck,
+    downloaded: d && info && info.available && d.version === info.latest && fs.existsSync(d.file) ? path.basename(d.file) : null
+  };
+}
 
 async function runUpdateCheck(manual) {
-  const info = await updater.checkForUpdate(store.getSettings().updateRepo);
+  const settings = store.getSettings();
+  const info = await updater.checkForUpdate({ repo: settings.updateRepo, current: app.getVersion(), fetchFn: (u, o) => net.fetch(u, o) });
+  setUpdateState({ lastCheck: { at: Date.now(), ok: !!info.ok, error: info.ok ? '' : String(info.error || '').slice(0, 200) } });
   if (info.ok) _lastUpdateInfo = info;
-  if (!info.ok) store.appendLog('_system', `Update check failed: ${info.error}`);
-  if (!manual && info.available && mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('update-available', info);
-  }
+  else store.appendLog('_system', `Update check failed: ${info.error}`, 'warn');
+  // A manual check shows the banner again, even for a version that was skipped or put off
+  if (manual && info.ok && info.available) setUpdateState({ skipVersion: '', remindUntil: 0 });
+  const view = updateView(info);
+  if (!manual && view.banner === 'show' && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-available', view);
   // Desktop, Telegram and email, once per version and channel (needs the option and a channel switched on)
-  if (!manual && info.available) {
-    const repo = store.getSettings().updateRepo;
-    const url  = info.url && info.url.startsWith(`https://github.com/${repo}/releases/`) ? info.url : `https://github.com/${repo}/releases/latest`;
-    alerter.notifyUpdate(info, url).catch(e => store.appendLog('_system', `Update alert failed: ${maskSecrets(e.message, secretsInUse())}`));
+  if (!manual && info.ok && info.available) {
+    const url = info.url && info.url.startsWith(`https://github.com/${settings.updateRepo}/releases/`) ? info.url : `https://github.com/${settings.updateRepo}/releases/latest`;
+    alerter.notifyUpdate(info, url).catch(e => store.appendLog('_system', `Update alert failed: ${maskSecrets(e.message, secretsInUse())}`, 'warn'));
   }
-  return info;
+  return view;
 }
 
 function scheduleUpdateChecks() {
@@ -763,14 +876,18 @@ function scheduleUpdateChecks() {
 }
 
 ipcMain.handle('check-updates', () => runUpdateCheck(true));
-// Result of the last automatic check, for a renderer that loads after it ran
-ipcMain.handle('get-update-info', () =>
-  (store.getSettings().checkUpdates !== false && _lastUpdateInfo && _lastUpdateInfo.available) ? _lastUpdateInfo : null);
-ipcMain.handle('dismiss-update', (_, version) => {
-  store.saveSettings({ updateDismissed: String(version || '') });
-  return true;
+// Result of the last automatic check, for a window that loads after it ran
+ipcMain.handle('get-update-info', () => {
+  if (store.getSettings().checkUpdates === false || !_lastUpdateInfo || !_lastUpdateInfo.available) return null;
+  const view = updateView(_lastUpdateInfo);
+  return view.banner === 'show' ? view : null;
 });
-let _downloadedInstaller = null;   // { version, file } once downloaded and verified
+ipcMain.handle('update-state', () => updateView(_lastUpdateInfo));
+ipcMain.handle('update-remind', () => { setUpdateState(updater.remindLaterState(updateState())); return updateView(_lastUpdateInfo); });
+ipcMain.handle('update-skip', () => {
+  if (_lastUpdateInfo && _lastUpdateInfo.latest) setUpdateState(updater.skipVersionState(updateState(), _lastUpdateInfo.latest));
+  return updateView(_lastUpdateInfo);
+});
 
 ipcMain.handle('download-update', async () => {
   const info = _lastUpdateInfo;
@@ -778,35 +895,69 @@ ipcMain.handle('download-update', async () => {
   if (_downloadedInstaller && _downloadedInstaller.version === info.latest && fs.existsSync(_downloadedInstaller.file)) {
     return { ok: true, file: _downloadedInstaller.file };
   }
+  if (_downloadAbort) return { ok: false, error: 'busy' };
+  const dir = app.getPath('downloads');
+  updater.sweepPartials(dir);                 // leftovers of a download that was interrupted earlier
+  _downloadAbort = new AbortController();
   try {
-    const file = await updater.downloadInstaller(info, app.getPath('downloads'), (received, total) => {
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-progress', { received, total });
+    const file = await updater.downloadInstaller({
+      info, dir, current: app.getVersion(), signal: _downloadAbort.signal, fetchFn: (u, o) => net.fetch(u, o),
+      onProgress: (received, total) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-progress', { received, total }); }
     });
     _downloadedInstaller = { version: info.latest, file };
-    store.appendLog('_system', `Update ${info.latest} downloaded and verified: ${file}`);
+    store.appendLog('_system', `Update ${info.latest} downloaded and verified`);
     return { ok: true, file };
   } catch(e) {
-    store.appendLog('_system', `Update download failed: ${e.message}`);
-    return { ok: false, error: e.message };
+    if (!e.cancelled) store.appendLog('_system', `Update download failed: ${e.message}`, 'warn');
+    return { ok: false, error: e.message, cancelled: !!e.cancelled };
+  } finally {
+    _downloadAbort = null;
   }
 });
+ipcMain.handle('cancel-update', () => { if (_downloadAbort) _downloadAbort.abort(); return true; });
 
-// Windows: start the installer and quit so it can replace the app.
-// macOS / Linux: open the downloaded disk image / show the AppImage; the user completes it.
+// Windows: start the installer and quit so it can replace the app (the app really quits: no hiding in the tray).
+// macOS: open the disk image; Linux: show the AppImage. The user completes it.
 ipcMain.handle('install-update', () => {
   const d = _downloadedInstaller;
-  if (!d || !fs.existsSync(d.file)) return false;
-  if (process.platform === 'win32') {
-    require('child_process').spawn(d.file, [], { detached: true, stdio: 'ignore' }).unref();
+  if (!d || !fs.existsSync(d.file)) return { ok: false, error: 'no-file' };
+  // never while a show is being produced
+  const busy = [..._runStatus.entries()].filter(([, st]) => st === 'running').map(([id]) => (store.getShow(id) || {}).name || id);
+  if (busy.length) return { ok: false, error: 'busy', busy };
+  try {
+    updater.makeSafetyCopy({ file: store.getDataFile(), dir: path.join(store.getDataDir(), 'backups'), version: app.getVersion() });
+  } catch(e) { store.appendLog('_system', `Safety copy before the update failed: ${e.message}`, 'warn'); }
+  const plan = updater.installPlan(process.platform, d.file);
+  store.appendLog('_system', `Installing ${d.version} (${plan.kind})`);
+  if (plan.kind === 'run-installer') {
+    require('child_process').spawn(plan.file, [], { detached: true, stdio: 'ignore' }).unref();
     app.isQuitting = true;
     setTimeout(() => app.quit(), 500);
-  } else if (process.platform === 'darwin') {
-    shell.openPath(d.file);
+  } else if (plan.kind === 'open-image') {
+    shell.openPath(plan.file);
   } else {
-    shell.showItemInFolder(d.file);
+    shell.showItemInFolder(plan.file);
   }
-  return true;
+  return { ok: true, hint: plan.hint || null, quit: plan.quit };
 });
+
+// What's new: the first start after an update shows the bullets of this version from the packaged CHANGELOG.md
+let _startKind = 'same';
+ipcMain.handle('whatsnew-get', () => {
+  if (_startKind !== 'updated') return null;
+  let text = '';
+  try { text = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8'); } catch(_) {}
+  return updater.whatsNew(text, app.getVersion()) || { version: app.getVersion(), date: '', bullets: [] };
+});
+ipcMain.handle('whatsnew-seen', () => { _startKind = 'same'; store.saveSettings({ lastSeenVersion: app.getVersion() }); return true; });
+
+// Help & About → "Copy support info": version, system, language, installation, last check and error. No settings values.
+ipcMain.handle('support-info', () => buildSupportInfo({
+  app: 'FlowCast', version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome,
+  platform: process.platform, arch: process.arch, osRelease: os.release(), language: store.getSettings().language || 'en',
+  installationName: notify.installationName(store.getSettings(), os.hostname()),
+  lastCheck: updateState().lastCheck, lastError: _lastError, home: os.homedir()
+}));
 
 // User manual (PDF) of the installed version, attached to its GitHub release
 ipcMain.handle('open-manual', () => {
@@ -899,11 +1050,25 @@ app.whenReady().then(() => {
   // This fixes "first install doesn't work, second does" on some Windows configurations.
   store.setSecretBox(createSecretBox(safeStorage));   // passwords and tokens are encrypted on disk when the keystore allows it
   store.load();
+  // One log file per day (5 MB at most, 7 days kept) next to the per-show logs
+  const logger = createLogger({
+    dir: store.getLogsDir(), prefix: 'flowcast', retentionDays: 7,
+    onEntry: e => { if (e.level === 'error') _lastError = { t: e.t, message: e.message }; }
+  });
+  logger.prune();
+  setInterval(() => logger.prune(), 6 * 3600 * 1000);
+  store.setLogger(logger);
+  logger.log('info', `FlowCast ${app.getVersion()} started (${process.platform} ${process.arch})`, 'app');
   stats.load(store.getDataDir(), store.getHistoryDir());
   _loadMainLocale();
   const sec = store.getSecretStatus();
-  if (sec.unreadable) store.appendLog('_system', `${sec.unreadable} saved password(s)/token(s) could not be decrypted on this PC: enter them again in Settings`);
-  if (!sec.encrypted) store.appendLog('_system', 'System keystore not available: passwords and tokens are saved without encryption');
+  if (sec.unreadable) store.appendLog('_system', `${sec.unreadable} saved password(s)/token(s) could not be decrypted on this PC: enter them again in Settings`, 'warn');
+  if (!sec.encrypted) store.appendLog('_system', 'System keystore not available: passwords and tokens are saved without encryption', 'warn');
+
+  // First start of a new version: the What's new window (a new installation says nothing)
+  _startKind = updater.startupKind(store.getSettings().lastSeenVersion, app.getVersion(), store.hadSettingsFile());
+  if (_startKind === 'first') store.saveSettings({ lastSeenVersion: app.getVersion() });
+  updater.sweepPartials(app.getPath('downloads'));
 
   alertState = createAlertState(path.join(store.getDataDir(), 'alert-state.json')).load();
   // versions before 26.10.1 kept the "source not updated" count inside the show: move it to the alert state
@@ -912,11 +1077,18 @@ app.whenReady().then(() => {
     getSettings: () => store.getSettings(),
     state: alertState,
     notifyDesktop: desktopNotice,
-    log: (level, text) => store.appendLog('_system', text)
+    log: (level, text) => store.appendLog('_system', text, level === 'warn' ? 'warn' : 'info'),
+    getPrefix: currentPrefix,
+    getShows: () => store.getShows(),
+    readHistory: id => store.readHistory(id, 200)
   });
+  // The summary: checked every minute; a time that passed while the PC was off is sent at the first start after it
+  setTimeout(() => alerter.digestTick().catch(() => {}), 30 * 1000);
+  setInterval(() => alerter.digestTick().catch(() => {}), 60 * 1000);
 
-  // Sync autostart setting on startup
+  // Sync autostart and keep-awake settings on startup
   applyLoginItem(store.getSettings());
+  applyKeepAwake(store.getSettings());
 
   createWindow();
   createTray();
@@ -934,6 +1106,8 @@ app.whenReady().then(() => {
   startLiveScheduleCheck();
   scheduleUpdateChecks();
 });
+
+app.on('before-quit', () => { app.isQuitting = true; });
 
 app.on('window-all-closed', (e) => {
   // Keep running in tray (don't quit)

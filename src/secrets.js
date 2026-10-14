@@ -1,3 +1,4 @@
+// garage-common: secrets 1
 'use strict';
 // Secrets: SMTP password, Telegram bot token, FTP passwords (shows and bookmarks).
 // On disk they are encrypted with the system keystore (Electron safeStorage) when it is available;
@@ -28,18 +29,19 @@ function createSecretBox(safeStorage) {
 
 const PLAIN_BOX = { available: () => false, seal: v => v, open: v => (isSealed(v) ? '' : v) };
 
-// Every place that holds a secret. Each entry gives the container objects of data and the field name.
-// kind: what the user knows it as (used to list what must be typed again after an import).
+// Every place that holds a secret. Each entry gives the container object of data and the field name.
+// id: stable name of the slot (goes in a backup's `emptiedSecrets`); kind: what the user knows it as (used to
+// list what must be typed again after an import).
 function secretSlots(data) {
   const slots = [];
-  const s = data && data.settings;
-  if (s && s.email && s.email.smtp)   slots.push({ obj: s.email.smtp, key: 'password', kind: 'smtp', label: s.email.smtp.host || 'SMTP' });
-  if (s && s.telegram)                slots.push({ obj: s.telegram,   key: 'token',    kind: 'telegram', label: 'Telegram' });
+  const n = data && data.settings && data.settings.notifications;
+  if (n && n.email)    slots.push({ id: 'email.pass',         obj: n.email,    key: 'pass',     kind: 'smtp',     label: n.email.host || 'SMTP' });
+  if (n && n.telegram) slots.push({ id: 'telegram.botToken',  obj: n.telegram, key: 'botToken', kind: 'telegram', label: 'Telegram' });
   for (const sh of (data && data.shows) || []) {
-    if (sh && sh.ftp) slots.push({ obj: sh.ftp, key: 'password', kind: 'ftp-show', label: sh.name || sh.id || '' });
+    if (sh && sh.ftp) slots.push({ id: `ftp-show:${sh.id}`, obj: sh.ftp, key: 'password', kind: 'ftp-show', label: sh.name || sh.id || '' });
   }
   for (const bm of (data && data.ftpBookmarks) || []) {
-    if (bm) slots.push({ obj: bm, key: 'password', kind: 'ftp-bookmark', label: bm.name || bm.host || '' });
+    if (bm) slots.push({ id: `ftp-bookmark:${bm.id}`, obj: bm, key: 'password', kind: 'ftp-bookmark', label: bm.name || bm.host || '' });
   }
   return slots;
 }

@@ -20,9 +20,10 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
     'show-sources':     'Show — Audio Sources tab',
     'show-schedule':    'Show — Schedule tab',
     'show-output':      'Show — Output & FTP tab',
-    'settings-email':   'Settings — Email alerts',
+    'settings-email':   'Settings — Alerts',
     'settings-general': 'Settings — General',
-    'settings-info':    'Settings — Info and updates',
+    'settings-updates': 'Settings — Updates',
+    'settings-info':    'Settings — Help & About',
   },
 
   chapters: [
@@ -47,7 +48,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <p>Open the <code>.dmg</code> and drag FlowCast into <em>Applications</em>. FlowCast is not signed by Apple, so the first time macOS blocks it: open <em>System Settings → Privacy &amp; Security</em> and press <strong>Open Anyway</strong> next to the FlowCast message.</p>
 <h3>Linux</h3>
 <p>Make the AppImage executable (<code>chmod +x FlowCast-*.AppImage</code>) and start it. On some distributions AppImages need the <code>libfuse2</code> package. Start at login is not available on Linux.</p>
-<p>All data (shows, settings, logs, history) is kept when you update or reinstall; its folder is shown in <em>Settings → Info</em> (see chapter 17).</p>
+<p>All data (shows, settings, logs, history) is kept when you update or reinstall; its folder is shown in <em>Settings → Help &amp; About</em> (see chapter 17).</p>
 <div class="note"><strong>Updating from version 26.5.0 or earlier.</strong> Those versions were installed with a different application ID, so the new installer does not replace them. Export a backup (chapter 16), quit FlowCast from the tray, uninstall the old FlowCast from <em>Settings → Apps</em>, then install the new version. Your shows and settings are kept.</div>` },
 
     { title: 'Installing FFmpeg', html: `
@@ -144,12 +145,13 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <p>Bitrate: 128k, 192k (default), 256k or 320k.</p>` },
 
     { title: 'Email alerts', html: `
-<p>In <em>Settings → Email</em> FlowCast can send an email:</p>
+<p>In <em>Settings → Alerts</em> FlowCast can send an email:</p>
 <ul>
 <li><strong>on error</strong>: when a show fails, or an upload, copy or archive step fails;</li>
-<li><strong>if the file is not updated</strong>: after 3 consecutive runs without new source files — a sign that the upstream system stopped producing them.</li>
+<li><strong>if the file is not updated</strong>: after 3 consecutive runs without new source files — a sign that the upstream system stopped producing them;</li>
+<li><strong>when it works again</strong>: once, when a show produces correctly after one of the alerts above had been sent (see <em>Recovery and summary</em> below).</li>
 </ul>
-<p>Set the SMTP server, port, user, password, sender and the recipients (several addresses separated by commas), then press <strong>📧 Test SMTP</strong>. All recipients get <strong>one</strong> message, with every address in Bcc: they do not see each other. With an SMTP user name the connection must be encrypted (STARTTLS, or SSL/TLS from the start on port 465): FlowCast never sends the password in clear text. Each alert is tried right away, again after 10 seconds and again after 60 seconds; after a restart FlowCast remembers which alerts it already sent. Passwords and tokens never appear in error messages or logs.</p>
+<p>Set the SMTP server, port, user, password, sender and the recipients (several addresses separated by commas), then press <strong>📧 Test SMTP</strong>. All recipients get <strong>one</strong> message, with every address in Bcc: they do not see each other. With an SMTP user name the connection must be encrypted (STARTTLS, or SSL/TLS from the start on port 465): FlowCast never sends the password in clear text. Each alert is tried right away, again after 10 seconds and again after 60 seconds; after a restart FlowCast remembers which alerts it already sent. Passwords and tokens never appear in error messages or logs. The 👁 button next to a password shows it while you check it; it is hidden again each time the page opens. Every alert starts with <code>[FlowCast · name]</code>, where the name is the one you give to this installation in <em>Settings → General</em> (the computer name if empty): with several PCs you know which one wrote.</p>
 {{shot:settings-email}}
 <p><strong>Certificates.</strong> FlowCast checks the certificate of the mail server, and the server name must match it. Many providers use a different name for their SMTP server than your own domain: use the name given by your provider. <em>Allow self-signed certificates</em> is meant only for internal servers you trust.</p>
 <h3>Telegram</h3>
@@ -160,7 +162,10 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <li>Paste the token, then press <strong>+ Add recipient</strong> for each chat ID and use the <em>note</em> field to remember who it is (e.g. "Anna", "Control room") — it is only shown to you, not sent to Telegram.</li>
 <li>Choose the alerts and press <strong>✈ Test Telegram</strong>: it reports which recipients could not be reached, without stopping the others.</li>
 </ol>
-<p>Every recipient gets every alert, with the same text as the emails.</p>` },
+<p>Every recipient gets every alert, with the same text as the emails.</p>
+<h3>Recovery and summary</h3>
+<p><strong>Recovery.</strong> After an alert (an error, or a source not updated), the first production that completes correctly sends <strong>one</strong> “Back to normal” message on the same channels. If no alert had been sent, nothing is sent. It works also after a restart, because what was announced is kept in <code>alert-state.json</code>. Each channel has its own switch, <em>Alert when it works again</em>.</p>
+<p><strong>Summary</strong> (<em>Settings → Alerts → Summary</em>, off by default). A text with what each show did in the last 24 hours (<em>every day</em>) or in the last 7 days (<em>every Monday</em>): productions, failures, source not updated and last production. Choose one or more times (the time of this PC) and whether to send it <em>always</em> or <em>only if something needs attention</em>; with nothing to report the text says “Everything is working”. It goes out on the channels already switched on (email, Telegram), once per time and day, also after a restart; if the PC is off at that time it is sent at the first start after it. <strong>Send now</strong> sends it at once, to try it.</p>` },
 
     { title: 'Dashboard', html: `
 <p>The <strong>top bar</strong>, always visible, shows the clock, the <em>next production</em> with a countdown and the shows <em>in production</em> right now.</p>
@@ -183,7 +188,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 </ul>
 {{shot:timeline}}
 <p>Under the navigation buttons the sidebar lists the <strong>next productions in the queue</strong>; the first one is highlighted. Below it are the shows, each with its status (OK, Error, Off…) and next run.</p>
-<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → General → Categories and colors</em>, click its colour swatch. The buttons on the right of each row reset the colour to automatic, rename the category in all its shows (if the new name already exists the two are merged) or delete it: you choose where its shows move (another category or <em>No category</em>).</p>` },
+<p><strong>Categories.</strong> In the General tab of a show you can set a category (e.g. News, Music, Weekend). The sidebar groups shows by category, each with its own colour; the dashboard counts them per category, and clicking a category there filters the sidebar (✕ removes the filter). Each colour is picked automatically; to change one, open <em>Settings → Categories</em>, click its colour swatch. The buttons on the right of each row reset the colour to automatic, rename the category in all its shows (if the new name already exists the two are merged) or delete it: you choose where its shows move (another category or <em>No category</em>).</p>` },
 
     { title: 'Settings', html: `
 <table>
@@ -193,43 +198,49 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <tr><td>FFmpeg path and Test</td><td>see chapter 3</td></tr>
 <tr><td>FTP timeout</td><td>seconds before an FTP operation gives up (default 30)</td></tr>
 <tr><td>Start at login</td><td>starts FlowCast at login, optionally minimized (Windows and macOS)</td></tr>
+<tr><td>Keep this PC awake</td><td>stops the system from going to sleep while FlowCast is running</td></tr>
+<tr><td>Name of this installation</td><td>shown in every alert as <code>[FlowCast · name]</code>; empty = the computer name</td></tr>
 <tr><td>When pressing X</td><td>Auto (minimize if scheduled shows exist), always minimize to tray, or always quit</td></tr>
 <tr><td>Language</td><td>English, Italiano, Español</td></tr>
 <tr><td>Theme</td><td>☀️/🌙 button in the title bar</td></tr>
 </table>
+<p>The pages of Settings are always in this order: General, FTP, Alerts, Categories, Updates, Backup, Help &amp; About. FlowCast remembers the size and position of its window.</p>
 {{shot:settings-general}}` },
 
     { title: 'System tray', html: `
 <p>FlowCast keeps running in the notification area (the menu bar on macOS) when the window is closed, depending on the <em>When pressing X</em> setting. Double-click the icon to open the window. Right-click for <em>Run now</em> on each enabled scheduled show, and <strong>Quit</strong> to close FlowCast completely.</p>` },
 
     { title: 'Updates', html: `
-<p>FlowCast checks for a new version at startup and every 24 hours. When one is available, a bar appears under the title bar:</p>
+<p>FlowCast checks for a new version 20 seconds after it starts and every 24 hours. <em>Settings → Updates</em> shows when the last check ran and has <strong>Check now</strong>. When a version is available, a bar appears under the title bar with the first lines of the release notes:</p>
 <ol>
-<li>Press <strong>Download and install</strong>: FlowCast downloads the installer to your <em>Downloads</em> folder and checks it against the SHA-256 checksum of the release.</li>
-<li>Press <strong>Close and install</strong>: FlowCast closes and the installer starts. Follow the wizard as for the first installation.</li>
+<li>Press <strong>Download and install</strong>: FlowCast downloads the installer to your <em>Downloads</em> folder, with a progress bar, and checks it against the SHA-256 checksum of the release. <strong>Cancel</strong> stops the download and removes the partial file; a file that does not match is deleted and you can press <strong>Try again</strong>.</li>
+<li>Press <strong>Close and install</strong>: FlowCast first saves a safety copy of your settings (<code>backups/pre-update-&lt;version&gt;.json</code>, the last 3 are kept), then closes and the installer starts. Follow the wizard as for the first installation. On macOS the disk image opens: drag FlowCast to <em>Applications</em> and open it again. On Linux the AppImage is shown in its folder.</li>
 </ol>
-<p><strong>Ignore this version</strong> hides the bar until a newer version is released. Nothing is installed until you press the button; if the download fails, <strong>Open download page</strong> opens the release on GitHub.</p>
-<p>In <em>Settings → Info → Updates</em> you can check manually or turn the automatic check off. If email or Telegram is switched on, FlowCast also tells you about a new version there (and with a desktop notification), <strong>once per version</strong>; you can turn this off with <em>Tell me about a new version…</em>. If the message cannot be delivered, it is tried again at the next check.</p>
-{{shot:settings-info}}
-<p>Shows and settings are kept. The <strong>📖 User manual (PDF)</strong> button (in the Guide and in <em>Settings → Info</em>) opens this manual for the installed version.</p>` },
+<p>FlowCast <strong>refuses to install while a show is being produced</strong> and says which one: press the button again when the production has finished. <strong>Remind me later</strong> hides the bar for 24 hours; <strong>Skip this version</strong> hides it until a newer version is released; <strong>Release notes</strong> shows them. Nothing is installed until you press the button.</p>
+<p>The first start after an update shows <strong>FlowCast was updated to…</strong> and a <strong>What's new</strong> window with the changes of that version.</p>
+{{shot:settings-updates}}
+<p>You can turn the automatic check off in the same page. If email or Telegram is switched on, FlowCast also tells you about a new version there (and with a desktop notification), <strong>once per version</strong>; you can turn this off with <em>Tell me about a new version…</em>. If the message cannot be delivered, it is tried again at the next check.</p>
+<p>Shows and settings are kept. The <strong>📖 User manual (PDF)</strong> button (in the Guide and in <em>Settings → Help &amp; About</em>) opens this manual for the installed version.</p>` },
 
     { title: 'Backup and moving to another PC', html: `
 <p>In <em>Settings → Backup</em>:</p>
 <ul>
-<li><strong>💾 Export all</strong> saves shows, settings and FTP bookmarks to a JSON file. The box <strong>Include passwords and tokens</strong> is off by default: the file then has no passwords or tokens. Ticked, a red warning appears and the secrets are written in plain text;</li>
+<li><strong>💾 Export all</strong> saves shows, settings, categories and FTP bookmarks to a JSON file (<code>flowcast-backup-YYYY-MM-DD.json</code>), the same file format in every OnAir Garage app; a backup of another program is refused. The box <strong>Include passwords and tokens</strong> is off by default: the file then has no passwords or tokens. Ticked, a red warning appears and the secrets are written in plain text;</li>
 <li><strong>📥 Import</strong> loads a backup: <em>OK</em> replaces everything, <em>Cancel</em> adds only the shows that are missing.</li>
 </ul>
 <p>To move FlowCast: export on the old PC, install FlowCast on the new one, import. Export a backup before every update.</p>
-<div class="note"><strong>A backup made without the box has no passwords or tokens:</strong> after importing it, FlowCast lists what you must type again (SMTP password, Telegram token, FTP passwords); secrets already on this PC for the same server and user are kept. If you tick the box, the file contains them in plain text: keep it in a safe place and delete copies you no longer need. On this PC, passwords and tokens are saved encrypted with the system keystore.</div>` },
+<div class="note"><strong>A backup made without the box has no passwords or tokens:</strong> after importing it, FlowCast lists what you must type again (SMTP password, Telegram token, FTP passwords), also the ones the file left out; secrets already on this PC for the same server and user are kept. If you tick the box, the file contains them in plain text: keep it in a safe place and delete copies you no longer need. On this PC, passwords and tokens are saved encrypted with the system keystore.</div>` },
 
     { title: 'Files and logs', html: `
-<p>The data folder is <code>%APPDATA%\\flowcast</code> on Windows, <code>~/Library/Application Support/flowcast</code> on macOS and <code>~/.config/flowcast</code> on Linux; <em>Settings → Info</em> shows the exact path.</p>
+<p>The data folder is <code>%APPDATA%\\flowcast</code> on Windows, <code>~/Library/Application Support/flowcast</code> on macOS and <code>~/.config/flowcast</code> on Linux; <em>Settings → Help &amp; About</em> shows the exact path.</p>
 <table>
 <tr><th>File or folder</th><th>Contents</th></tr>
 <tr><td><code>data.json</code></td><td>shows, settings and bookmarks</td></tr>
+<tr><td><code>alert-state.json</code></td><td>what the alerts already announced (never in a backup)</td></tr>
 <tr><td><code>stats.json</code></td><td>daily statistics for the dashboard</td></tr>
 <tr><td><code>work/&lt;slug&gt;/</code></td><td>working files</td></tr>
-<tr><td><code>logs/</code></td><td>one log per show, <code>_system.log</code> for general errors</td></tr>
+<tr><td><code>logs/</code></td><td>one log per show and one file per day (<code>flowcast_dd-mm-yyyy.log</code>, up to 5 MB, the last 7 days)</td></tr>
+<tr><td><code>backups/</code></td><td>a copy of <code>data.json</code> made before each update (the last 3; still encrypted, they open only on this PC)</td></tr>
 <tr><td><code>history/</code></td><td>run history</td></tr>
 </table>
 <p>The <strong>Console</strong> at the bottom of the window shows the live output of every production; click its bar to open or close it.</p>
@@ -258,7 +269,9 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <li>Source code and releases: <code>github.com/djgragra/flowcast</code></li>
 <li>Contact: <code>hello@onairgarage.com</code></li>
 </ul>
-<p><strong>Privacy.</strong> FlowCast has no telemetry. Besides the FTP and SMTP servers you configure, it only contacts GitHub (<code>api.github.com</code>) for the update check, which can be turned off.</p>
+<p><strong>Privacy.</strong> FlowCast has no telemetry. Besides the FTP and SMTP servers you configure (and Telegram, if you switch it on), it only contacts GitHub (<code>api.github.com</code>) for the update check, which can be turned off.</p>
+<p><strong>Help &amp; About</strong> (<em>Settings</em>, or the ℹ button) has the version, the system, the links, and two buttons for support: <strong>📋 Copy support info</strong> puts on the clipboard the version, system, language, installation name, date of the last update check and last error — never your settings, addresses or passwords — to paste into an email to <code>hello@onairgarage.com</code>; <strong>📂 Open logs folder</strong> opens the daily log files.</p>
+{{shot:settings-info}}
 <p><strong>License.</strong> MIT License, © 2026 Graziano Melzi. FFmpeg is a separate project, licensed under the LGPL/GPL, and is not distributed with FlowCast.</p>` },
   ]
 };

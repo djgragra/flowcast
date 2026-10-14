@@ -9,11 +9,8 @@ const { SECRETS } = require('./helpers');
 i18n.load('en');
 
 const emailCfg = (extra = {}) => ({
-  enabled: true,
-  smtp: { host: 'smtp.example.org', port: 587, user: 'alerts', password: SECRETS.smtp, secure: false, ...(extra.smtp || {}) },
-  from: 'alerts@example.org',
-  recipients: ['a@example.org', 'b@example.org', 'c@example.org'],
-  ...extra, smtp: { host: 'smtp.example.org', port: 587, user: 'alerts', password: SECRETS.smtp, secure: false, ...(extra.smtp || {}) }
+  enabled: true, host: 'smtp.example.org', port: 587, user: 'alerts', pass: SECRETS.smtp, secure: false,
+  from: 'alerts@example.org', recipients: ['a@example.org', 'b@example.org', 'c@example.org'], ...extra
 });
 
 // a transport that records what it was created with and what it sends
@@ -25,6 +22,11 @@ function fakeTransport(sendMail) {
   };
   return { log, factory };
 }
+
+// the memory of the alerts (src/alert-state.js) without a file
+const { createAlertState } = require('../src/alert-state');
+const os = require('os'), fsx = require('fs'), pathx = require('path');
+const memState = () => createAlertState(pathx.join(fsx.mkdtempSync(pathx.join(os.tmpdir(), 'fc-alert-')), 'alert-state.json')).load();
 
 test('email: one message, all recipients in Bcc, nobody in To', async () => {
   const { log, factory } = fakeTransport();
@@ -51,13 +53,13 @@ test('email: an address rejected by the server makes the send fail and names the
 });
 
 test('email: with an SMTP user the connection must be encrypted (STARTTLS required, or TLS from the start)', async () => {
-  let o = notify.smtpOptions({ host: 'h', port: 587, user: 'u', password: 'p', secure: false });
+  let o = notify.smtpOptions({ host: 'h', port: 587, user: 'u', pass: 'p', secure: false });
   assert.equal(o.requireTLS, true);
   assert.equal(o.secure, false);
-  o = notify.smtpOptions({ host: 'h', port: 465, user: 'u', password: 'p', secure: true });
+  o = notify.smtpOptions({ host: 'h', port: 465, user: 'u', pass: 'p', secure: true });
   assert.equal(o.secure, true);
   assert.equal(o.requireTLS, false);          // already encrypted from the start
-  o = notify.smtpOptions({ host: 'h', port: 25, user: '', password: '', secure: false });
+  o = notify.smtpOptions({ host: 'h', port: 25, user: '', pass: '', secure: false });
   assert.equal(o.requireTLS, false);          // no user name, no password to protect
   assert.equal(o.auth, undefined);
   // the options really reach the transport, and certificates are verified by default
@@ -66,7 +68,7 @@ test('email: with an SMTP user the connection must be encrypted (STARTTLS requir
   assert.equal(log.created[0].requireTLS, true);
   assert.equal(log.created[0].tls.rejectUnauthorized, true);
   const t2 = fakeTransport();
-  await notify.sendEmail(emailCfg({ smtp: { allowSelfSigned: true } }), 's', 'b', t2.factory);
+  await notify.sendEmail(emailCfg({ allowSelfSigned: true }), 's', 'b', t2.factory);
   assert.equal(t2.log.created[0].tls.rejectUnauthorized, false);
 });
 
@@ -85,7 +87,7 @@ test('timeouts: SMTP 15 s connection / 15 s greeting / 20 s socket, 15 s per Tel
   // Telegram: every call carries an abort signal (15 s)
   const seen = [];
   const fetchFn = async (url, opts) => { seen.push(opts); return { ok: true, json: async () => ({ ok: true }) }; };
-  await notify.sendTelegram({ enabled: true, token: SECRETS.token, recipients: [{ chatId: '1' }] }, 'hi', fetchFn);
+  await notify.sendTelegram({ enabled: true, botToken: SECRETS.token, recipients: [{ chatId: '1' }] }, 'hi', fetchFn);
   assert.ok(seen[0].signal instanceof AbortSignal);
 });
 
@@ -110,8 +112,8 @@ test('retries: an alert goes through them on both channels; one failing channel 
   const sleep = async () => {};
   let emailCalls = 0, tgCalls = 0;
   const alerter = notify.createAlerter({
-    getSettings: () => ({ email: { ...emailCfg(), onError: true }, telegram: { enabled: true, token: SECRETS.token, recipients: [{ chatId: '1' }], onError: true } }),
-    state: { getNoUpdate: () => 0, setNoUpdate() {} }, sleep,
+    getSettings: () => ({ notifications: { email: { ...emailCfg(), onError: true }, telegram: { enabled: true, botToken: SECRETS.token, recipients: [{ chatId: '1' }], onError: true } } }),
+    state: memState(), sleep,
     deps: { sendEmail: async () => { emailCalls++; throw new Error('smtp down'); }, sendTelegram: async () => { tgCalls++; } }
   });
   const res = await alerter.alertShow({ id: 's1', name: 'Morning' }, 'error', { message: 'boom' });
@@ -133,9 +135,9 @@ test('masking: SMTP password, Telegram token and FTP password never appear in an
   // Telegram: node/Electron put the URL (with the token) in the error
   const fetchFn = async url => { throw new Error(`request to ${url} failed`); };
   await assert.rejects(
-    notify.sendTelegram({ enabled: true, token: SECRETS.token, recipients: [{ chatId: '42', note: 'Anna' }] }, 'hi', fetchFn),
+    notify.sendTelegram({ enabled: true, botToken: SECRETS.token, recipients: [{ chatId: '42', note: 'Anna' }] }, 'hi', fetchFn),
     e => { assert.ok(!e.message.includes(SECRETS.token)); assert.ok(e.message.includes('Anna (42)')); return true; });
-  const tr = await notify.testTelegramConnection({ token: SECRETS.token, recipients: [{ chatId: '1' }] }, fetchFn);
+  const tr = await notify.testTelegramConnection({ botToken: SECRETS.token, recipients: [{ chatId: '1' }] }, fetchFn);
   assert.equal(tr.success, false); assert.ok(!tr.message.includes(SECRETS.token));
   // very short secrets are left alone (the text would become unreadable)
   const { maskSecrets } = require('../src/secrets');
@@ -171,7 +173,7 @@ test('masking: the FTP password is hidden in the connection test and in upload e
 
 test('messages: the Telegram text always says who writes (shared bot); the update text names version and page', () => {
   assert.equal(notify.withPrefix('Disk full'), '[FlowCast] Disk full');
-  assert.equal(notify.withPrefix('⛔ FlowCast — Error: Morning\n\nbody'), '⛔ FlowCast — Error: Morning\n\nbody');
+  assert.equal(notify.withPrefix('[FlowCast · Studio 2] ⛔ Error: Morning\n\nbody'), '[FlowCast · Studio 2] ⛔ Error: Morning\n\nbody');
   const m = notify.buildUpdateMessage({ latest: '26.10.1', current: '26.9.8', notes: 'Alerts rebuilt\r\nTLS required' }, 'https://github.com/djgragra/flowcast/releases/tag/v26.10.1');
   assert.match(m.subject, /26\.10\.1/);
   assert.match(m.body, /26\.10\.1.*26\.9\.8/);

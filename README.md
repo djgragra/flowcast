@@ -19,16 +19,19 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Catch-up**: if the computer was off at the scheduled time, missed shows run automatically at the next start
 - **Dashboard** with statistics: productions per day (7/14/30 days), per show and per hour, success rate, audio produced, average production time, recent activity and shows with errors
 - **Schedule** view with all show cards (search, filters, sorting) and a **timeline** of the next 24 hours or 7 days; the sidebar lists the **next productions in the queue** and a top bar shows the next production with a countdown
-- **Categories** with colours (customizable in Settings): shows grouped in the sidebar and counted in the statistics; rename a category in all its shows, or delete it and move its shows elsewhere (Settings → General)
+- **Categories** with colours (customizable in Settings): shows grouped in the sidebar and counted in the statistics; rename a category in all its shows, or delete it and move its shows elsewhere (Settings → Categories)
 - **Console** with the live output of every production
 - **Email alerts** (SMTP) on errors and when a source file has not been updated for 3 consecutive runs: several recipients in one message, all in Bcc (they do not see each other); with an SMTP user the connection must be encrypted; server certificates are verified (self-signed certificates can be allowed explicitly); timeouts of 15 / 15 / 20 s
 - **Telegram alerts** through your own bot, to one or more recipients (each with a note on who it is), with the same text as the emails
-- Every alert is tried right away, again after 10 s and again after 60 s; the "not updated" count and the new-version notice are remembered across restarts; passwords and tokens are masked in error messages and logs
-- **New version notice** on desktop, Telegram and email, once per version (Settings → Info → Updates; needs Telegram or email switched on)
+- Every alert is tried right away, again after 10 s and again after 60 s; passwords and tokens are masked in error messages and logs; every alert starts with `[FlowCast · installation name]` (the computer name unless you set one), so with several PCs you know which one wrote
+- **Recovery alert**: after an error or a "source not updated" alert, the first production that completes correctly sends one "back to normal" message (also after a restart: what was announced is remembered in `alert-state.json`, together with the "not updated" count and the new-version notice)
+- **Summary** (off by default): what every show did in the last 24 hours (every day) or 7 days (every Monday), at the times you choose, always or only when something needs attention, on email and Telegram; *Send now* to try it (Settings → Alerts)
+- **New version notice** on desktop, Telegram and email, once per version (Settings → Updates; needs Telegram or email switched on)
 - **Dry run** to test a show without uploading or copying anything
 - Tray icon with quick-run menu, configurable close behaviour, start at login
-- Configuration export and import (backup / migration); the export has a box *Include passwords and tokens*, off by default
-- **Updates**: checks GitHub for a new release at startup and every 24 hours; *Download and install* fetches the installer, verifies its SHA-256 and runs it only when you press *Close and install* (the check can be turned off in Settings → Info)
+- Configuration export and import (backup / migration), the same file in every OnAir Garage app (`flowcast-backup-YYYY-MM-DD.json`); the export has a box *Include passwords and tokens*, off by default
+- **Guided update**: checks GitHub for a new release at startup and every 24 hours; *Download and install* fetches the installer with a progress bar and *Cancel*, verifies its SHA-256 and runs it only when you press *Close and install*, which first saves a safety copy of your settings and refuses while a show is being produced. *Remind me later* and *Skip this version*, the date of the last check, *Updated to…* and a *What's new* window after the update (the check can be turned off in Settings → Updates)
+- **Help & About** with *Copy support info* (version, system, language, installation name, last update check and error; never settings or addresses) and *Open logs folder*; daily log files (5 MB, 7 days); *show password* buttons on every password and token; the window remembers its size and position; *Keep this PC awake* option
 - **User manual** (PDF, English and Italian) attached to every release and one click away from the in-app Guide
 - Interface in **English, Italian and Spanish**
 
@@ -95,17 +98,18 @@ Once installed, FlowCast updates itself on request: *Download and install* in th
 | Linux | `~/.config/flowcast/` |
 
 - `data.json`: shows, settings and FTP bookmarks
+- `backups/`: a copy of `data.json` made before each update (the last 3; still encrypted, they open only on this PC)
 - `stats.json`: daily statistics for the dashboard
 - `alert-state.json`: what the alerts already announced (survives restarts; not in backups)
 - `work/<slug>/`: temporary working files
-- `logs/`: one log per show
+- `logs/`: one log per show, and one file per day (`flowcast_dd-mm-yyyy.log`, up to 5 MB, the last 7 days)
 - `history/`: run history per show
 
-**Passwords and tokens.** FTP and SMTP passwords and the Telegram bot token are encrypted in `data.json` with the system keystore (Electron `safeStorage`: Windows DPAPI, macOS Keychain, Linux Secret Service/kwallet) and cannot be read on another PC or user account. Where no keystore is available they are saved without encryption, and Settings → Email says so. Configuration exports have **no** passwords or tokens unless you tick *Include passwords and tokens*; then they are written in plain text and a red warning is shown. After an import without them, the app lists what must be typed again. `alert-state.json` (what the alerts already announced) is never part of an export.
+**Passwords and tokens.** FTP and SMTP passwords and the Telegram bot token are encrypted in `data.json` with the system keystore (Electron `safeStorage`: Windows DPAPI, macOS Keychain, Linux Secret Service/kwallet) and cannot be read on another PC or user account. Where no keystore is available they are saved without encryption, and Settings → Alerts says so. Configuration exports have **no** passwords or tokens unless you tick *Include passwords and tokens*; then they are written in plain text and a red warning is shown. After an import without them, the app lists what must be typed again (also the ones the file left out). A backup of another OnAir Garage app is refused. `alert-state.json` (what the alerts already announced) is never part of an export.
 
 ## Privacy
 
-FlowCast has no telemetry. Besides the FTP and SMTP servers (and Telegram, if you enable it) that you configure, the only connection it makes is the update check to GitHub (which sees your IP address and the FlowCast version). Turn it off in Settings → Info → *Updates*.
+FlowCast has no telemetry. Besides the FTP and SMTP servers (and Telegram, if you enable it) that you configure, the only connection it makes is the update check to GitHub (which sees your IP address and the FlowCast version). Turn it off in Settings → *Updates*. Help & About lists everything the program contacts.
 
 ## Build from source
 
@@ -121,7 +125,7 @@ npm run manual         # user manuals (PDF, EN and IT) in dist/
 npm run release:local  # download a published release into release/<version>/ and verify it
 ```
 
-Releases are built by GitHub Actions when a `v*` tag is pushed (`.github/workflows/build-installers.yml`) on Windows, macOS and Linux runners. The workflow checks that the tag matches `package.json` and is newer than the latest release, then attaches the installers, the manuals, a zip with everything and `SHA256SUMS.txt` to the GitHub Release.
+Releases are built by GitHub Actions (`.github/workflows/build-installers.yml`, started by hand with the version in `release_version`) on Windows, macOS and Linux runners. The workflow checks that the version matches `package.json` and is newer than the latest release, runs the tests, creates the tag, then attaches the installers, the manuals, a zip with everything and `SHA256SUMS.txt` to the GitHub Release.
 
 ## Contact
 
