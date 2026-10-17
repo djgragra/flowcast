@@ -33,9 +33,28 @@ test('email: one message, all recipients in Bcc, nobody in To', async () => {
   await notify.sendEmail(emailCfg(), 'Subject', 'Body', factory);
   assert.equal(log.sent.length, 1);
   assert.deepEqual(log.sent[0].bcc, ['a@example.org', 'b@example.org', 'c@example.org']);
-  assert.equal(log.sent[0].to, 'alerts@example.org');
+  assert.equal(log.sent[0].to, 'undisclosed-recipients:;');
   assert.ok(!String(log.sent[0].to).includes('a@example.org'));
   assert.equal(log.closed, 1);
+});
+
+test('email: the sender is not in To and gets no copy unless it is one of the recipients', async () => {
+  const nodemailer = require('nodemailer');
+  const envelopeOf = async (cfg) => {
+    const { log, factory } = fakeTransport();
+    await notify.sendEmail(cfg, 's', 'b', factory);
+    const stream = nodemailer.createTransport({ streamTransport: true, buffer: true });
+    const info = await stream.sendMail(log.sent[0]);
+    return info.envelope;
+  };
+  // the real nodemailer builds the SMTP envelope: only the recipients, never the sender's own address
+  let env = await envelopeOf(emailCfg({ from: 'sender@example.org', recipients: ['gm@example.org', 'b@example.org'] }));
+  assert.equal(env.from, 'sender@example.org');
+  assert.deepEqual(env.to, ['gm@example.org', 'b@example.org']);
+  // the sender listed as a recipient receives the message once
+  env = await envelopeOf(emailCfg({ from: 'sender@example.org', recipients: ['sender@example.org', 'gm@example.org'] }));
+  assert.deepEqual(env.to.filter(a => a === 'sender@example.org'), ['sender@example.org']);
+  assert.equal(env.to.length, 2);
 });
 
 test('email: recipients are validated, deduplicated, and old text lists still work', async () => {

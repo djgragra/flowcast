@@ -2,6 +2,11 @@
 
 Versions use `YY.M.N`. Newest first.
 
+## 26.10.3 — 2026-10-17
+- **Email alerts no longer copy the sender.** The message was addressed to the sender with the recipients in Bcc, so the sender's own mailbox received every alert, even when it was not in the recipient list. Now the recipients are the only ones who receive it (the sender gets a copy only if it is listed as a recipient).
+- **Tip jar card** in Settings → Help & About: a small card with the tip jar, one line and a button that opens the tip page of onairgarage.com in your language (English, Italian, Spanish). Nothing elsewhere, no pop-ups.
+- Dependencies updated: Electron 44.9.0, nodemailer 10.1.2, basic-ftp 6.2.3, and the other minor and patch updates of the lock file (`npm audit` reports no vulnerability in the dependencies that ship with the app).
+
 ## 26.10.2 — 2026-10-14
 - **Guided update, the same in every OnAir Garage app.** The bar now has **Download and install**, **Remind me later** (24 hours), **Skip this version** and **Release notes**; the download shows a progress bar and can be **cancelled** (the partial file is removed; a download that stops for a minute is given up and cleaned). **Close and install** first saves a **safety copy** of your settings (`backups/pre-update-<version>.json`, the last 3 are kept) and **refuses while a show is being produced**, telling you which one. After the update the first start shows **Updated to…** and a **What's new** window with the changes of the version. Settings → Updates shows the date of the last check and has **Check now**.
 - **Back to normal alert.** After an error or a "source not updated" alert, the first production that completes correctly sends one "Back to normal" message on email and Telegram (a switch per channel, on by default). It also works after a restart: what was announced is kept in `alert-state.json`.

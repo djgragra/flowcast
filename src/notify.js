@@ -85,8 +85,8 @@ async function sendEmail(emailCfg, subject, text, transportFactory = null) {
   if (!emailCfg.host || !to.length || !from) throw new Error(t('mail.incomplete'));
   const transporter = makeTransport(emailCfg, transportFactory);
   try {
-    // one message, all recipients in Bcc
-    const info = await transporter.sendMail({ from, to: from, bcc: to, subject, text });
+    // one message, all recipients in Bcc; "To" is never the sender, or the sender's own mailbox gets a copy of every alert
+    const info = await transporter.sendMail({ from, to: 'undisclosed-recipients:;', bcc: to, subject, text });
     const rejected = (info && info.rejected) || [];
     if (rejected.length) throw new Error(t('mail.rejected', { list: rejected.join(', ') }));
   } catch(e) {

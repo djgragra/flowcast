@@ -42,6 +42,9 @@
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       el.title = t(el.dataset.i18nTitle);
     });
+    document.querySelectorAll('[data-i18n-href]').forEach(el => {
+      el.href = t(el.dataset.i18nHref);
+    });
   }
 
   window.t          = t;

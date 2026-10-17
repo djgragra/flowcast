@@ -25,7 +25,7 @@ test('texts: every key the code asks for exists, and no text is empty', () => {
     assert.ok(Object.values(loc).every(v => String(v).trim()));
   }
   const html = read('renderer/index.html');
-  const ui = [...html.matchAll(/data-i18n(?:-html|-placeholder|-title)?="([\w.]+)"/g)].map(m => m[1]);
+  const ui = [...html.matchAll(/data-i18n(?:-html|-placeholder|-title|-href)?="([\w.]+)"/g)].map(m => m[1]);
   const js = read('renderer/renderer.js') + read('renderer/dashboard.js');
   const codeKeys = [...js.matchAll(/\bt\('([\w.-]+)'/g)].map(m => m[1]).filter(k => !k.endsWith('.'));   // 'cfg.kind.' + kind is checked below
   for (const l of ['en', 'it', 'es']) {
@@ -66,4 +66,23 @@ test('every api.* call of the window exists in preload.js', () => {
   // and every channel preload invokes has a handler in main.js
   const main = read('main.js');
   for (const m of preload.matchAll(/invoke\('([\w-]+)'/g)) assert.ok(main.includes(`'${m[1]}'`), `no handler for ${m[1]}`);
+});
+
+test('tip card (Help & About): text, pill and link in the three languages, jar image shipped, link only to the site\'s support page', () => {
+  const html = read('renderer/index.html');
+  assert.match(html, /<img class="tip-jar" src="img\/tip-jar\.png" alt="">|<img class="tip-jar" src="img\/tip-jar\.png" alt="" width/);
+  assert.ok(fs.existsSync(path.join(root, 'renderer/img/tip-jar.png')));
+  assert.ok(JSON.parse(read('package.json')).build.files.includes('renderer/**/*'));
+  const urls = { en: 'https://onairgarage.com/support/', it: 'https://onairgarage.com/it/support/', es: 'https://onairgarage.com/es/support/' };
+  for (const l of ['en', 'it', 'es']) {
+    const loc = rendererLocale(l);
+    assert.equal(loc['about.tip.url'], urls[l]);
+    assert.ok(loc['about.tip.text'].trim() && loc['about.tip.link'].trim());
+  }
+  assert.equal(rendererLocale('en')['about.tip.link'], 'Tip jar');
+  assert.equal(rendererLocale('it')['about.tip.link'], 'Salvadanaio');
+  assert.equal(rendererLocale('es')['about.tip.link'], 'Hucha');
+  // no pop-up, no reminder: the card is only in the About page and nothing in the code opens it by itself
+  assert.equal((html.match(/class="tip-card"/g) || []).length, 1);
+  assert.ok(html.indexOf('class="tip-card"') > html.indexOf('id="set-about"'));
 });

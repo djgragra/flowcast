@@ -1,6 +1,6 @@
 {
   "name": "flowcast",
-  "version": "26.10.2",
+  "version": "26.10.3",
   "description": "Automated production and delivery of radio shows and audio programs: FFmpeg conversion, FTP upload, scheduling and email alerts.",
   "author": "Graziano Melzi <hello@onairgarage.com> (https://onairgarage.com)",
   "homepage": "https://onairgarage.com/tools/flowcast/",
@@ -18,12 +18,12 @@
     "screenshots": "node scripts/screenshots/run.js"
   },
   "dependencies": {
-    "basic-ftp": "^6.2.1",
+    "basic-ftp": "^6.2.3",
     "node-cron": "^4.6.0",
-    "nodemailer": "^10.0.10"
+    "nodemailer": "^10.1.2"
   },
   "devDependencies": {
-    "electron": "^44.4.5",
+    "electron": "^44.9.0",
     "electron-builder": "^26.15.3"
   },
   "build": {
