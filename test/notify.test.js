@@ -199,3 +199,16 @@ test('messages: the Telegram text always says who writes (shared bot); the updat
   assert.match(m.body, /releases\/tag\/v26\.10\.1/);
   assert.match(m.body, /TLS required/);
 });
+
+test('update notice link: the app page on the site, in the language of the app, never the GitHub release', () => {
+  const updater = require('../src/updater');
+  assert.equal(updater.pageUrl('flowcast', 'en'), 'https://onairgarage.com/tools/flowcast/');
+  assert.equal(updater.pageUrl('flowcast', 'it'), 'https://onairgarage.com/it/tools/flowcast/');
+  assert.equal(updater.pageUrl('flowcast', 'es'), 'https://onairgarage.com/es/tools/flowcast/');
+  assert.equal(updater.pageUrl(undefined, 'fr'), 'https://onairgarage.com/tools/flowcast/');
+  const main = require('fs').readFileSync(require('path').join(__dirname, '..', 'main.js'), 'utf8');
+  assert.ok(main.includes("updater.pageUrl('flowcast'"));
+  const m = notify.buildUpdateMessage({ latest: '26.10.5', current: '26.10.4' }, updater.pageUrl('flowcast', 'it'));
+  assert.ok(m.body.includes('https://onairgarage.com/it/tools/flowcast/'));
+  assert.ok(!m.body.includes('github.com'));
+});

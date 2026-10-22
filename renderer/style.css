@@ -618,7 +618,8 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .about-p{font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.6}
 #modal-whatsnew li{margin-bottom:4px}
 .tip-card{display:flex;align-items:center;gap:16px;margin-top:20px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card2)}
-.tip-jar{flex-shrink:0;width:80px;height:auto}
+.tip-jar-link{flex-shrink:0;display:block;cursor:pointer}
+.tip-jar{display:block;width:80px;height:auto}
 .tip-body{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .tip-text{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
 .tip-pill{display:inline-block;padding:6px 16px;border:2px solid #FBF4E4;border-radius:99px;background:#C8232C;color:#FBF4E4;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;cursor:pointer}

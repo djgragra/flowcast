@@ -2,6 +2,11 @@
 
 Versions use `YY.M.N`. Newest first.
 
+## 26.10.4 — 2026-10-22
+- **macOS on Apple silicon: the app now opens.** The Apple silicon build carried a broken signature and macOS said FlowCast was "damaged". The app is now signed ad-hoc when it is built (no Apple account needed) and every build checks the signature of the apps inside the disk images. The first start still shows the usual "unidentified developer" notice: *System Settings → Privacy & Security → Open Anyway*. If you already installed 26.10.3 or older and macOS says it is damaged, install this version over it (the README and the manual give the one-line command for an old copy).
+- The main window runs in Electron's sandbox, as the other OnAir Garage apps do (no change in what you see).
+- Dependency update: nodemailer 10.2.0.
+
 ## 26.10.3 — 2026-10-17
 - **Email alerts no longer copy the sender.** The message was addressed to the sender with the recipients in Bcc, so the sender's own mailbox received every alert, even when it was not in the recipient list. Now the recipients are the only ones who receive it (the sender gets a copy only if it is listed as a recipient).
 - **Tip jar card** in Settings → Help & About: a small card with the tip jar, one line and a button that opens the tip page of onairgarage.com in your language (English, Italian, Spanish). Nothing elsewhere, no pop-ups.

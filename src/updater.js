@@ -238,7 +238,14 @@ function startupKind(lastSeen, current, hadSettings = false) {
   return isNewer(current, lastSeen) ? 'updated' : 'same';
 }
 
+// The app's page on the site (installer for each system, changelog, hashes): the link that alerts use.
+// English has no prefix; an unknown language falls back to English.
+function pageUrl(slug = 'flowcast', lang = 'en') {
+  const prefix = lang === 'it' ? '/it' : lang === 'es' ? '/es' : '';
+  return `https://onairgarage.com${prefix}/tools/${slug}/`;
+}
+
 module.exports = {
-  REPO, PRODUCT, REPO_RE, isNewer, pickInstaller, releaseNotesSummary, checkForUpdate, sweepPartials, downloadInstaller,
+  REPO, PRODUCT, REPO_RE, pageUrl, isNewer, pickInstaller, releaseNotesSummary, checkForUpdate, sweepPartials, downloadInstaller,
   bannerState, remindLaterState, skipVersionState, makeSafetyCopy, installPlan, whatsNew, startupKind
 };

@@ -45,7 +45,7 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <li>Start FlowCast from the Start menu or the desktop shortcut.</li>
 </ol>
 <h3>macOS</h3>
-<p>Open the <code>.dmg</code> and drag FlowCast into <em>Applications</em>. FlowCast is not signed by Apple, so the first time macOS blocks it: open <em>System Settings → Privacy &amp; Security</em> and press <strong>Open Anyway</strong> next to the FlowCast message.</p>
+<p>Open the <code>.dmg</code> and drag FlowCast into <em>Applications</em>. FlowCast has no Apple certificate (it carries an ad-hoc signature), so the first time macOS shows an “unidentified developer” notice: open <em>System Settings → Privacy &amp; Security</em> and press <strong>Open Anyway</strong> next to the FlowCast message.</p>
 <h3>Linux</h3>
 <p>Make the AppImage executable (<code>chmod +x FlowCast-*.AppImage</code>) and start it. On some distributions AppImages need the <code>libfuse2</code> package. Start at login is not available on Linux.</p>
 <p>All data (shows, settings, logs, history) is kept when you update or reinstall; its folder is shown in <em>Settings → Help &amp; About</em> (see chapter 17).</p>
@@ -258,7 +258,9 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 <h3>Email test fails with a certificate error</h3>
 <p>The server name does not match its certificate: use the SMTP server name given by your provider (chapter 10).</p>
 <h3>macOS says FlowCast cannot be opened</h3>
-<p>FlowCast is not signed by Apple. Open <em>System Settings → Privacy &amp; Security</em> and press <strong>Open Anyway</strong> (chapter 2).</p>
+<p>FlowCast has no Apple certificate. Open <em>System Settings → Privacy &amp; Security</em> and press <strong>Open Anyway</strong> (chapter 2).</p>
+<h3>macOS says FlowCast is “damaged” (version 26.10.3 or older, Apple silicon)</h3>
+<p>Install the latest version over it. Or, in Terminal, once: <code>xattr -cr /Applications/FlowCast.app &amp;&amp; codesign --force --deep -s - /Applications/FlowCast.app</code>.</p>
 <h3>Two FlowCast entries in <em>Apps</em></h3>
 <p>You installed over version 26.5.0 or earlier. Export a backup, uninstall both entries, install the new version and import the backup if needed.</p>` },
 

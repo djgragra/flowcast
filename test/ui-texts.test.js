@@ -72,6 +72,8 @@ test('tip card (Help & About): text, pill and link in the three languages, jar i
   const html = read('renderer/index.html');
   assert.match(html, /<img class="tip-jar" src="img\/tip-jar\.png" alt="">|<img class="tip-jar" src="img\/tip-jar\.png" alt="" width/);
   assert.ok(fs.existsSync(path.join(root, 'renderer/img/tip-jar.png')));
+  // the jar is a second link to the same page (decorative: not in the tab order, hidden from screen readers)
+  assert.match(html, /<a class="tip-jar-link" href="https:\/\/onairgarage\.com\/support\/" data-i18n-href="about\.tip\.url" tabindex="-1" aria-hidden="true"><img class="tip-jar"/);
   assert.ok(JSON.parse(read('package.json')).build.files.includes('renderer/**/*'));
   const urls = { en: 'https://onairgarage.com/support/', it: 'https://onairgarage.com/it/support/', es: 'https://onairgarage.com/es/support/' };
   for (const l of ['en', 'it', 'es']) {
