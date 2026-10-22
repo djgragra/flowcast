@@ -81,10 +81,10 @@ Get-FileHash .\FlowCast-Setup-<version>.exe -Algorithm SHA256
 shasum -a 256 FlowCast-<version>-arm64.dmg
 ```
 
-FlowCast is **not code-signed**:
+FlowCast is **not code-signed with an Apple or Microsoft certificate**:
 
 - **Windows**: SmartScreen may show "Windows protected your PC": click *More info* → *Run anyway*.
-- **macOS**: drag FlowCast to *Applications*. The first time, macOS blocks it: open *System Settings → Privacy & Security* and press *Open Anyway*.
+- **macOS**: drag FlowCast to *Applications*. The app has an ad-hoc signature (no Apple account), so the first time macOS shows an "unidentified developer" notice: open *System Settings → Privacy & Security* and press *Open Anyway*. If you installed an earlier version (26.10.3 or older) on an Apple silicon Mac and macOS says the app is "damaged", install this version over it, or run once `xattr -cr /Applications/FlowCast.app && codesign --force --deep -s - /Applications/FlowCast.app`.
 - **Linux**: `chmod +x FlowCast-*.AppImage` and run it (some distributions need `libfuse2`). Start at login is not available on Linux.
 
 Once installed, FlowCast updates itself on request: *Download and install* in the update bar, then *Close and install*.

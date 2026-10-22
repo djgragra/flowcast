@@ -129,7 +129,8 @@ function createWindow() {
     webPreferences: {
       preload:          path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration:  false
+      nodeIntegration:  false,
+      sandbox:          true
     },
     title: 'FlowCast',
     icon: loadAppIcon(),
@@ -863,7 +864,7 @@ async function runUpdateCheck(manual) {
   if (!manual && view.banner === 'show' && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-available', view);
   // Desktop, Telegram and email, once per version and channel (needs the option and a channel switched on)
   if (!manual && info.ok && info.available) {
-    const url = info.url && info.url.startsWith(`https://github.com/${settings.updateRepo}/releases/`) ? info.url : `https://github.com/${settings.updateRepo}/releases/latest`;
+    const url = updater.pageUrl('flowcast', String(settings.language || 'en').slice(0, 2));
     alerter.notifyUpdate(info, url).catch(e => store.appendLog('_system', `Update alert failed: ${maskSecrets(e.message, secretsInUse())}`, 'warn'));
   }
   return view;
@@ -968,11 +969,8 @@ ipcMain.handle('open-manual', () => {
 });
 
 ipcMain.handle('open-update', () => {
-  const repo = store.getSettings().updateRepo;
-  const url  = _lastUpdateInfo && _lastUpdateInfo.url;
-  // Only this repository's release pages
-  if (url && url.startsWith(`https://github.com/${repo}/releases/`)) shell.openExternal(url);
-  else shell.openExternal(`https://github.com/${repo}/releases/latest`);
+  // The app's page on the site (installers, changelog, hashes), in the language of the app
+  shell.openExternal(updater.pageUrl('flowcast', String(store.getSettings().language || 'en').slice(0, 2)));
   return true;
 });
 

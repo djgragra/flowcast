@@ -45,7 +45,7 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <li>Avvia FlowCast dal menu Start o dal collegamento sul desktop.</li>
 </ol>
 <h3>macOS</h3>
-<p>Apri il <code>.dmg</code> e trascina FlowCast in <em>Applicazioni</em>. FlowCast non è firmato da Apple, quindi la prima volta macOS lo blocca: apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> accanto al messaggio su FlowCast.</p>
+<p>Apri il <code>.dmg</code> e trascina FlowCast in <em>Applicazioni</em>. FlowCast non ha un certificato Apple (ha una firma ad-hoc), quindi la prima volta macOS mostra l’avviso “sviluppatore non identificato”: apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> accanto al messaggio su FlowCast.</p>
 <h3>Linux</h3>
 <p>Rendi eseguibile l'AppImage (<code>chmod +x FlowCast-*.AppImage</code>) e avviala. Su alcune distribuzioni le AppImage richiedono il pacchetto <code>libfuse2</code>. L'avvio all'accesso non è disponibile su Linux.</p>
 <p>Tutti i dati (show, impostazioni, log, registro) restano quando aggiorni o reinstalli; la loro cartella è indicata in <em>Impostazioni → Aiuto e Info</em> (vedi capitolo 17).</p>
@@ -258,7 +258,9 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 <h3>Il test email fallisce con un errore di certificato</h3>
 <p>Il nome del server non corrisponde al suo certificato: usa il nome del server SMTP indicato dal tuo provider (capitolo 10).</p>
 <h3>macOS dice che FlowCast non può essere aperto</h3>
-<p>FlowCast non è firmato da Apple. Apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> (capitolo 2).</p>
+<p>FlowCast non ha un certificato Apple. Apri <em>Impostazioni di Sistema → Privacy e sicurezza</em> e premi <strong>Apri comunque</strong> (capitolo 2).</p>
+<h3>macOS dice che FlowCast è «danneggiato» (versione 26.10.3 o precedente, Apple silicon)</h3>
+<p>Installa sopra la versione più recente. Oppure, nel Terminale, una volta: <code>xattr -cr /Applications/FlowCast.app &amp;&amp; codesign --force --deep -s - /Applications/FlowCast.app</code>.</p>
 <h3>Due voci FlowCast in <em>App</em></h3>
 <p>Hai installato sopra la versione 26.5.0 o precedente. Esporta un backup, disinstalla entrambe le voci, installa la nuova versione e, se serve, importa il backup.</p>` },
 
