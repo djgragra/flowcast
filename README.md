@@ -62,7 +62,7 @@ If you only use the *Direct copy* output format with a single source file, FFmpe
 
 ## Install
 
-Download the file for your system from the [Releases](../../releases) page. Each release also has the user manual (`FlowCast-Manual-<version>.pdf`, `FlowCast-Manuale-<version>.pdf`), a zip with everything (`FlowCast-<version>.zip`) and `SHA256SUMS.txt`.
+Download the file for your system from the [Releases](../../releases) page. Each release also has the user manual (`FlowCast-Manual-EN-<version>.pdf`, `-IT-` and `-ES-`), a zip with everything (`FlowCast-<version>.zip`) and `SHA256SUMS.txt`.
 
 | System | File |
 |---|---|

@@ -1,5 +1,5 @@
 'use strict';
-// Renders the PDF user manual (English + Italian) with screenshots of the real app.
+// Renders the PDF user manual (English, Italian and Spanish) with screenshots of the real app.
 // Loaded by main.js only when FLOWCAST_MANUAL_OUT is set (see scripts/manual/run.js);
 // the scripts/ folder is not part of the packaged app.
 //
@@ -14,7 +14,7 @@ const path = require('path');
 const ROOT     = path.join(__dirname, '..', '..');
 const OUT_DIR  = path.resolve(process.env.FLOWCAST_MANUAL_OUT);
 const VERSION  = require(path.join(ROOT, 'package.json')).version;
-const LANGS    = ['en', 'it'];
+const LANGS    = ['en', 'it', 'es'];
 const TIMEOUT_MS = 5 * 60 * 1000;
 
 // ── Demo data (fictional: no real station, server or show) ───────────────────
@@ -163,7 +163,7 @@ function logoDataUrl() {
 
 function buildHtml(c, lang, shots) {
   let fig = 0;
-  const date = new Date().toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const date = new Date().toLocaleDateString(({ it: 'it-IT', es: 'es-ES' }[lang] || 'en-GB'), { day: 'numeric', month: 'long', year: 'numeric' });
   const chapters = c.chapters.map((ch, i) => {
     const body = ch.html.replace(/\{\{shot:([\w-]+)\}\}/g, (_, name) => {
       if (!shots[name]) throw new Error(`Missing screenshot ${name}`);

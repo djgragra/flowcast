@@ -2,7 +2,7 @@
 // Manuale utente FlowCast — italiano. {{shot:nome}} viene sostituito da uno screenshot dell'app.
 
 module.exports = {
-  file:     'FlowCast-Manuale',
+  file:     'FlowCast-Manual-IT',
   title:    'Manuale utente',
   contents: 'Indice',
   version:  'Versione',
