@@ -123,7 +123,7 @@ jobs:
             hdiutil detach "$MNT" -quiet
           done
 
-      - name: Build user manuals (PDF, English and Italian)
+      - name: Build user manuals (PDF, English, Italian and Spanish)
         if: matrix.name == 'windows'
         run: npm run manual
 

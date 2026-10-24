@@ -963,7 +963,8 @@ ipcMain.handle('support-info', () => buildSupportInfo({
 // User manual (PDF) of the installed version, attached to its GitHub release
 ipcMain.handle('open-manual', () => {
   const v    = app.getVersion();
-  const name = ((store.getSettings().language || 'en').startsWith('it')) ? 'FlowCast-Manuale' : 'FlowCast-Manual';
+  const lang = String(store.getSettings().language || 'en').slice(0, 2);
+  const name = `FlowCast-Manual-${['it', 'es'].includes(lang) ? lang.toUpperCase() : 'EN'}`;
   shell.openExternal(`https://github.com/${store.getSettings().updateRepo}/releases/download/v${v}/${name}-${v}.pdf`);
   return true;
 });
