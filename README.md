@@ -40,6 +40,8 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Windows 10 or 11** (64-bit), **macOS 13 Ventura or later** (Intel and Apple silicon) or **Linux** 64-bit (AppImage)
 - **FFmpeg** (not included, see below)
 
+<a href="https://ko-fi.com/F8V328ADFH"><img height="36" src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com"></a>
+
 ## Installing FFmpeg
 
 FlowCast calls FFmpeg as an external program and does not ship it. Install it once:
@@ -136,3 +138,9 @@ Graziano Melzi · OnAir Garage, hello@onairgarage.com
 [MIT](LICENSE) © 2026 Graziano Melzi
 
 FFmpeg is a separate project, licensed under the LGPL/GPL, and is not distributed with FlowCast.
+
+## Support
+
+This tool is free and will stay free, with source code. If it saved your day, you can leave a tip on Ko-fi: a thank-you, nothing more.
+
+<a href="https://ko-fi.com/F8V328ADFH"><img height="36" src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com"></a>
