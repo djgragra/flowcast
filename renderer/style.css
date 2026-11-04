@@ -268,6 +268,11 @@ input[type=checkbox]{width:auto;accent-color:var(--accent)}
 .wav-note::placeholder{color:var(--muted);font-style:italic}
 .wav-row .btn-sm{flex-shrink:0}
 .wav-check{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;display:block}
+.wav-midroll-label,.wlh-midroll{display:none}
+.markers-on .wav-midroll-label{width:78px;flex-shrink:0;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer}
+.markers-on .wlh-midroll{display:block;width:78px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center}
+.wav-midroll{width:14px;height:14px;accent-color:var(--accent);cursor:pointer;display:block}
+.wav-row:last-child .wav-midroll-label{visibility:hidden}
 .wav-check-label{width:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center;user-select:none;cursor:pointer}
 
 /* Days check */

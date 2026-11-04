@@ -163,6 +163,7 @@ function buildMessage(show, type, details = {}, now = new Date()) {
       if (details.ops.local   === 'error') lines.push(t('mail.op_local'));
       if (details.ops.ftp     === 'error') lines.push(t('mail.op_ftp'));
       if (details.ops.archive === 'error') lines.push(t('mail.op_archive'));
+      if (details.ops.markers === 'error') lines.push(t('mail.op_markers'));
     }
     return { subject: t('mail.err_subject', { name: show.name }), body: lines.join('\n') };
   }

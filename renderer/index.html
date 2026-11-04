@@ -261,11 +261,34 @@
               <span class="wlh-path" data-i18n="src.col.path">File path</span>
               <span class="wlh-browse"></span>
               <span class="wlh-note"  data-i18n="src.col.note">Notes</span>
+              <span class="wlh-midroll" data-i18n="src.col.midroll">Ad break after</span>
               <span class="wlh-check" data-i18n="src.col.check">Check</span>
               <span class="wlh-btns"></span>
             </div>
             <div class="wav-list" id="wav-list"></div>
             <button class="btn btn-muted btn-sm" id="btn-add-wav" style="margin-top:8px" data-i18n="src.add">+ Add audio</button>
+          </div>
+          <div class="form-section">
+            <h3 data-i18n="mk.title">IndiPlay ad breaks (midroll)</h3>
+            <div class="cb-row" style="margin-bottom:12px">
+              <label class="toggle">
+                <input type="checkbox" id="f-markers-enabled">
+                <span class="toggle-slider"></span>
+              </label>
+              <label for="f-markers-enabled" data-i18n="mk.enabled.label">Enable IndiPlay ad breaks (midroll)</label>
+            </div>
+            <div id="markers-fields">
+              <!-- One platform for now: the selector stays in the page, hidden, ready for the next one -->
+              <div class="field" id="markers-format-field" style="display:none">
+                <label data-i18n="mk.format.label">Platform</label>
+                <select id="f-markers-format">
+                  <option value="indiplay" data-i18n="mk.format.indiplay">IndiPlay.it (.mrp file next to the audio)</option>
+                  <option value="blubrry"  data-i18n="mk.format.blubrry" hidden disabled>Blubrry (comment inside the MP3)</option>
+                </select>
+              </div>
+              <div class="note" id="markers-format-note" style="margin-bottom:8px" data-i18n="mk.format.indiplay.note"></div>
+              <div class="note" data-i18n-html="mk.note">Each join between two audio files can carry an ad break: tick <b>Ad break after</b> on the file before the join. The position is the sum of the durations of the files before it. A show with a single file has no joins. Platforms that only take ad breaks from their own web panel cannot be served from here.</div>
+            </div>
           </div>
         </div>
 
@@ -909,6 +932,7 @@
       <div class="help-section"><h3 data-i18n="help.s15.title"></h3><div data-i18n-html="help.s15.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s18.title"></h3><div data-i18n-html="help.s18.body"></div></div>
       <div class="help-section"><h3 data-i18n="help.s19.title"></h3><div data-i18n-html="help.s19.body"></div></div>
+      <div class="help-section"><h3 data-i18n="help.s20.title"></h3><div data-i18n-html="help.s20.body"></div></div>
     </div>
   </div>
 </div>

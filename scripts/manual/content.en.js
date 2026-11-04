@@ -144,6 +144,12 @@ and delivers the result by FTP, to a local folder and to an archive — on a sch
 </table>
 <p>Bitrate: 128k, 192k (default), 256k or 320k.</p>` },
 
+    { title: 'IndiPlay ad breaks (midroll)', html: `
+<p>For stations that use <strong>IndiPlay.it</strong>, which plays ads in the middle of a program from a file of positions. This is off by default.</p>
+<p>In a show, open <em>Audio Sources</em> and switch on <strong>Enable IndiPlay ad breaks (midroll)</strong>. A column <strong>Ad break after</strong> appears: tick it on every file that is followed by an ad break. The last file has no box, because a break at the end is handled by the platform. Each tick is one break at the join with the next file: a show of four files can have up to three breaks, and you choose which ones.</p>
+<p>When the show is produced FlowCast measures the files with FFmpeg and writes a text file with the <strong>same name as the audio and extension <code>.mrp</code></strong>, one position in milliseconds per line (for example <code>163950</code> is 2 minutes 43.95 seconds). The file is copied next to the audio in the archive and in the output folder, and is uploaded by FTP just before the audio. The position is the sum of the durations of the files before the join, so it can be off by a few tens of milliseconds.</p>
+<p>A show with a single file has no joins: nothing is written. If the file cannot be written, the audio goes out anyway and the show reports an <em>Midroll</em> error on its card, in the statistics and in the alerts.</p>` },
+
     { title: 'Email alerts', html: `
 <p>In <em>Settings → Alerts</em> FlowCast can send an email:</p>
 <ul>

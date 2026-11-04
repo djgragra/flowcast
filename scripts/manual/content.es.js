@@ -144,6 +144,12 @@ y entrega el resultado por FTP, en una carpeta local y en un archivo — con hor
 </table>
 <p>Bitrate: 128k, 192k (por defecto), 256k o 320k.</p>` },
 
+    { title: 'Pausas publicitarias de IndiPlay (midroll)', html: `
+<p>Para emisoras que usan <strong>IndiPlay.it</strong>, que inserta los anuncios a mitad de programa leyendo un archivo de posiciones. Está desactivado por defecto.</p>
+<p>En un programa abre <em>Fuentes de audio</em> y activa <strong>Activar las pausas publicitarias de IndiPlay (midroll)</strong>. Aparece la columna <strong>Pausa tras</strong>: márcala en cada archivo que va seguido de una pausa. El último archivo no tiene casilla, porque una pausa al final la gestiona la plataforma. Cada marca es una pausa en la unión con el archivo siguiente: un programa de cuatro archivos puede tener hasta tres pausas, y eliges cuáles.</p>
+<p>Cuando se produce el programa, FlowCast mide los archivos con FFmpeg y escribe un archivo de texto con <strong>el mismo nombre del audio y extensión <code>.mrp</code></strong>, una posición en milisegundos por línea (por ejemplo <code>163950</code> es 2 minutos y 43,95 segundos). El archivo se copia junto al audio en el archivo histórico y en la carpeta de salida, y se sube por FTP justo antes del audio. La posición es la suma de las duraciones de los archivos anteriores a la unión, por lo que puede variar unas decenas de milisegundos.</p>
+<p>Un programa con un solo archivo no tiene uniones: no se escribe nada. Si el archivo no se puede escribir, el audio sale igualmente y el programa informa de un error de <em>Midroll</em> en su ficha, en las estadísticas y en las alertas.</p>` },
+
     { title: 'Alertas por correo', html: `
 <p>En <em>Configuración → Alertas</em> FlowCast puede enviar un correo:</p>
 <ul>

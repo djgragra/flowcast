@@ -332,8 +332,14 @@ async function runShow(showId, force = false, dryRun = false) {
     if (result.action === 'produced' && !dryRun && show.ftp && show.ftp.enabled && show.ftp.host) {
       logFn(mt('log.ftp_start'));
       const ftpTimeoutMs = ((settings.ftpTimeout || 30) * 1000);
+      // The marker file (.mrp) goes first: the platform may pick the audio up as soon as it arrives
+      let ftpOk = true;
+      if (result.markerFile) {
+        const mR = await ftpClient.upload(show.ftp, result.markerFile, logFn, ftpTimeoutMs);
+        if (!mR.success) { ftpOk = false; logFn(mt('log.ftp_failed', { error: mR.error })); }
+      }
       const ftpR = await ftpClient.upload(show.ftp, result.file, logFn, ftpTimeoutMs);
-      ftpResult = ftpR.success ? 'ok' : 'error';
+      ftpResult = (ftpR.success && ftpOk) ? 'ok' : 'error';
       if (!ftpR.success) logFn(mt('log.ftp_failed', { error: ftpR.error }));
     } else if (dryRun && show.ftp && show.ftp.enabled) {
       logFn(mt('log.dry_ftp'));
@@ -345,7 +351,8 @@ async function runShow(showId, force = false, dryRun = false) {
     const lastDetails = (result.action === 'produced' && !dryRun) ? {
       ftp:     ftpResult,
       archive: result.archiveResult || 'skipped',
-      local:   result.localResult   || 'skipped'
+      local:   result.localResult   || 'skipped',
+      ...(result.markersResult && result.markersResult !== 'skipped' ? { markers: result.markersResult } : {})
     } : null;
 
     const now = new Date().toISOString();

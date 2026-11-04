@@ -102,5 +102,13 @@
   "digest.problems": "{n} programa(s) requieren atención.",
   "digest.no_shows": "Ningún programa activo.",
   "digest.no_channel": "Ningún canal activo: activa primero el correo o Telegram.",
-  "digest.sent_ok": "Resumen enviado ✓"
+  "digest.sent_ok": "Resumen enviado ✓",
+  "proc.markers_single": "Pausas publicitarias: el programa tiene un solo archivo, nada que marcar",
+  "proc.markers_none_selected": "Pausas publicitarias: ninguna unión seleccionada, nada que marcar",
+  "proc.markers_unsupported": "Pausas publicitarias: este formato solo funciona con salida MP3 (la salida es {ext}) - marcadores no escritos",
+  "proc.markers_found": "Pausas publicitarias: {n} encontradas en (ms): {list}",
+  "proc.markers_failed": "AVISO: pausas publicitarias no escritas ({error})",
+  "proc.markers_tagged": "Pausas publicitarias escritas en el comentario del MP3: {text}",
+  "proc.markers_written": "Archivo de pausas publicitarias escrito: {file}",
+  "mail.op_markers": "• Marcadores de pausas publicitarias: ERROR"
 }

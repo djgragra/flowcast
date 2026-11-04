@@ -102,5 +102,13 @@
   "digest.problems": "{n} show(s) need attention.",
   "digest.no_shows": "No active shows.",
   "digest.no_channel": "No channel is switched on: turn on email or Telegram first.",
-  "digest.sent_ok": "Summary sent ✓"
+  "digest.sent_ok": "Summary sent ✓",
+  "proc.markers_single": "Ad breaks: the show has a single file, nothing to mark",
+  "proc.markers_none_selected": "Ad breaks: no join is selected, nothing to mark",
+  "proc.markers_unsupported": "Ad breaks: this format only works with MP3 output (output is {ext}) - markers not written",
+  "proc.markers_found": "Ad breaks: {n} found at (ms): {list}",
+  "proc.markers_failed": "WARNING: ad breaks not written ({error})",
+  "proc.markers_tagged": "Ad breaks written in the MP3 comment: {text}",
+  "proc.markers_written": "Ad break file written: {file}",
+  "mail.op_markers": "• Ad break markers: ERROR"
 }
