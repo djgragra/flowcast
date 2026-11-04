@@ -59,6 +59,7 @@ function demoData() {
       baseWav: 'C:\\Radio\\Exports', baseArchive: 'D:\\Archive', ffmpegPath: 'C:\\ffmpeg\\bin\\ffmpeg.exe',
       ftpTimeout: 30, autostart: false, startHidden: false, theme: 'dark', language: 'en', closeToTray: 'auto',
       checkUpdates: false, updateRepo: 'djgragra/flowcast', installationName: 'Studio PC',
+      lastSeenVersion: require('../../package.json').version,   // no "What's new" window over the shots
       notifications: {
         desktop: true,
         email: {
@@ -73,7 +74,8 @@ function demoData() {
     shows: [
       show('demo-morning', 'Morning News',   'morning-news',   '07:10', 'weekdays', [], ['Jingles\\intro.wav', 'News\\morning_1.wav', 'News\\morning_2.wav']),
       show('demo-jazz',    'Jazz Corner',    'jazz-corner',    '21:10', 'specific', ['SAT'], ['Music\\jazz_1.wav', 'Music\\jazz_2.wav']),
-      show('demo-tech',    'Tech Weekly',    'tech-weekly',    '13:10', 'specific', ['FRI'], ['Talk\\tech_1.wav', 'Talk\\tech_2.wav', 'Talk\\tech_3.wav']),
+      show('demo-tech',    'Tech Weekly',    'tech-weekly',    '13:10', 'specific', ['FRI'], ['Talk\\tech_1.wav', 'Talk\\tech_2.wav', 'Talk\\tech_3.wav'],
+           { adMarkers: { enabled: true, format: 'indiplay' } }),
       show('demo-sport',   'Sports Roundup', 'sports-roundup', '17:10', 'weekdays', [], ['Sport\\roundup.wav'],
            { lastResult: 'no-update', lastDetails: null }),
       show('demo-city',    'City Talk',      'city-talk',      '11:10', 'daily',    [], ['Talk\\city.wav'],
@@ -104,6 +106,7 @@ const SHOTS = [
   ['07-settings-alerts-dark', 'dark', "openSettings('alerts'); await new Promise(r => setTimeout(r, 500)); document.getElementById('secrets-warning').classList.add('hidden')"],
   ['08-categories-dark',   'dark',  "openSettings('categories')"],
   ['09-updates-dark',      'dark',  "openSettings('updates')"],
+  ['10-ad-breaks-dark',    'dark',  "closeSettings(); await openShow('demo-tech'); switchTab('sorgenti'); document.querySelector('#tab-sorgenti .form-section:nth-of-type(2)').scrollIntoView()"],
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

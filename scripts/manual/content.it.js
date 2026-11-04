@@ -144,6 +144,13 @@ e consegna il risultato via FTP, in una cartella locale e in archivio — second
 </table>
 <p>Bitrate: 128k, 192k (predefinito), 256k o 320k.</p>` },
 
+    { title: 'Pause pubblicitarie IndiPlay (midroll)', html: `
+<p>Per le radio che usano <strong>IndiPlay.it</strong>, che inserisce gli spot a metà programma leggendo un file di posizioni. È spento di default.</p>
+<p>In uno show apri <em>Sorgenti audio</em> e accendi <strong>Abilita le pause pubblicitarie IndiPlay (midroll)</strong>. Compare la colonna <strong>Pausa dopo</strong>: spuntala su ogni file seguito da una pausa. L'ultimo file non ha la casella, perché una pausa in fondo la gestisce la piattaforma. Ogni spunta è una pausa alla giunzione con il file successivo: uno show di quattro file può avere fino a tre pause, e scegli tu quali.</p>
+<p>Quando lo show viene prodotto FlowCast misura i file con FFmpeg e scrive un file di testo con <strong>lo stesso nome dell'audio ed estensione <code>.mrp</code></strong>, una posizione in millisecondi per riga (per esempio <code>163950</code> è 2 minuti e 43,95 secondi). Il file viene copiato accanto all'audio nell'archivio e nella cartella di uscita, e caricato via FTP subito prima dell'audio. La posizione è la somma delle durate dei file prima della giunzione, quindi può sbagliare di qualche decina di millisecondi.</p>
+<p><strong>Ogni N minuti.</strong> In <em>Dove vanno le pause</em> scegli <em>Ogni N minuti</em> e imposta i minuti (da 1 a 240, predefinito 15): FlowCast mette una pausa a N, 2N, 3N… minuti dall'inizio, finché dopo resta almeno un minuto di audio. Funziona anche con un solo file, e allora la colonna <em>Pausa dopo</em> non si usa.</p>
+<p>Con le giunzioni, uno show con un solo file non ha giunzioni: non si scrive niente. Se il file non si può scrivere, l'audio parte lo stesso e lo show segnala un errore <em>Midroll</em> sulla scheda, nelle statistiche e negli avvisi.</p>` },
+
     { title: 'Avvisi email', html: `
 <p>In <em>Impostazioni → Avvisi</em> FlowCast può inviare una email:</p>
 <ul>

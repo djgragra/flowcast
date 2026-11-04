@@ -128,6 +128,22 @@ window.LOCALES.en = {
   'src.row.check':      'Check for updates',
   'src.row.remove':     'Remove',
   'src.row.prefix':     'AUDIO',
+  'src.col.midroll': 'Ad break after',
+  'src.row.midroll': 'Ad break (midroll) between this file and the next',
+  'mk.title': 'IndiPlay ad breaks (midroll)',
+  'mk.enabled.label': 'Enable IndiPlay ad breaks (midroll)',
+  'mk.format.label': 'Platform',
+  'mk.format.indiplay': 'IndiPlay.it (.mrp file next to the audio)',
+  'mk.format.blubrry': 'Blubrry (comment inside the MP3)',
+  'mk.format.indiplay.note': 'Writes a text file with the same name as the audio and extension .mrp: one position in milliseconds per line. It is copied and uploaded together with the audio.',
+  'mk.format.blubrry.note': 'Writes the positions in the ID3 comment of the MP3 (for example mid1 00:02:43.9, mid2 00:04:59.0). Works only with MP3 output.',
+  'mk.blubrry.needs_mp3': 'Blubrry works only with MP3 output: with this output format the markers will not be written.',
+  'mk.note': 'Each join between two audio files can carry an ad break: tick <b>Ad break after</b> on the file before the join. The position is the sum of the durations of the files before it, so it can be off by a few tens of milliseconds. A show with a single file has no joins.',
+  'mk.mode.label': 'Where the ad breaks go',
+  'mk.mode.joins': 'At the joins between files',
+  'mk.mode.interval': 'Every N minutes (also with a single file)',
+  'mk.interval.label': 'Minutes between ad breaks',
+  'mk.interval.note': 'A break at N, 2N, 3N… minutes from the start of the show, as long as at least one minute of audio is left after it. The length of the show is measured with FFmpeg.',
 
   // ── Schedule tab ─────────────────────────────────────────────────────────────
   'sch.manual.notice':  '▶ <strong>Manual</strong> mode — schedule not active.<br>Switch to "Scheduled" (General tab) to enable automatic start.',
@@ -237,6 +253,7 @@ window.LOCALES.en = {
   'card.last_run':  'Last run: {date} — {result}',
   'chip.local':     'Local',
   'chip.archive':   'Archive',
+  'chip.markers': 'Midroll',
 
   // ── Confirm / alert dialogs ───────────────────────────────────────────────────
   'confirm.delete_show':   'Delete "{name}"? This action cannot be undone.',
@@ -614,4 +631,6 @@ window.LOCALES.en = {
   'help.s18.body': '<p><strong>Recovery.</strong> After an alert (an error, or a source not updated), the first production that completes correctly sends <strong>one</strong> “Back to normal” message on the same channels. If no alert had been sent, nothing is sent. It works also after a restart, because what was announced is kept in <code>alert-state.json</code>. Each channel has its own switch <em>Alert when it works again</em>.</p><p><strong>Summary.</strong> In <em>Settings → Alerts → Summary</em> you can turn on a text with what each show did in the last 24 hours (every day) or in the last 7 days (every Monday): produced, failed, source not updated and last production. Choose one or more times (the time of this PC) and whether to send it <em>always</em> or <em>only if something needs attention</em>. It goes out on the channels already switched on (email, Telegram), once per time and day, also after a restart; if the PC is off at that time it is sent at the first start after it. <strong>Send now</strong> sends it at once, to try it. It is off by default.</p>',
   'help.s19.title': '🧩 This installation and support',
   'help.s19.body': '<p><strong>Name of this installation</strong> (<em>Settings → General</em>): every alert — desktop, Telegram and email — starts with <code>[FlowCast · name]</code>; empty means the computer name. With several PCs you know which one wrote.</p><p><strong>Show password</strong>: the eye button next to every password and token (SMTP, Telegram, FTP) shows what you typed; it hides again each time the page opens.</p><p><strong>Keep this PC awake</strong> (<em>Settings → General</em>) stops the system from going to sleep while FlowCast is running. FlowCast also remembers the size and position of its window.</p><p><strong>Help &amp; About</strong> (<em>Settings</em>, or the ℹ button) has the version, the system, the links and two buttons for support: <em>Copy support info</em> (version, system, language, installation name, last update check and last error: never your settings, addresses or passwords) and <em>Open logs folder</em>.</p>',
+  'help.s20.title': '🎙 IndiPlay ad breaks (midroll)',
+  'help.s20.body': '<p>For stations that use <strong>IndiPlay.it</strong>. In a show, <em>Audio Sources → Enable IndiPlay ad breaks</em> adds a column <strong>Ad break after</strong>: tick it on every file that is followed by an ad break (the last file has no box). The position of each break is the sum of the durations of the files before the join, so it can be off by a few tens of milliseconds.</p><p>Each production writes a text file with the <strong>same name as the audio and extension .mrp</strong>, one position in milliseconds per line, next to the audio: in the archive and the output folder too, and by FTP just before the audio. A show with one file has no joins and no file is written. If the file fails, the audio still goes out and the card shows a <em>Midroll</em> error.</p><p><strong>Every N minutes.</strong> In <em>Where the ad breaks go</em> choose <em>Every N minutes</em> (1–240, default 15): one break at N, 2N, 3N… minutes from the start, as long as at least one minute of audio is left after it. It works with a single file too; the column <em>Ad break after</em> is not used then.</p>',
 };

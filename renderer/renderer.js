@@ -222,7 +222,7 @@ function matchesFilter(show) {
   if (_filters.has('error')) {
     if (show.lastResult === 'error') return true;
     const d = show.lastDetails;
-    if (d && (d.ftp === 'error' || d.local === 'error' || d.archive === 'error')) return true;
+    if (d && (d.ftp === 'error' || d.local === 'error' || d.archive === 'error' || d.markers === 'error')) return true;
   }
   return false;
 }
@@ -305,6 +305,7 @@ function renderDashboardCard(show) {
     if (show.outputFolder)                              _ops.push(_d.local);
     if (show.ftp && show.ftp.enabled && show.ftp.host) _ops.push(_d.ftp);
     if (show.archiveEnabled)                            _ops.push(_d.archive);
+    if (show.adMarkers && show.adMarkers.enabled)       _ops.push(_d.markers);
     if (_ops.some(s => s === 'error')) effectiveStatus = 'error';
   }
 
@@ -363,6 +364,8 @@ function renderDashboardCard(show) {
   if (show.outputFolder)                              chips.push(`<span class="chip chip-local" title="${esc(_localTip)}">📁 ${t('chip.local') || 'Local'}${chipDot(d && d.local)}</span>`);
   if (show.ftp && show.ftp.enabled && show.ftp.host) chips.push(`<span class="chip chip-ftp" title="${esc(_ftpTip)}">📡 FTP${chipDot(d && d.ftp)}</span>`);
   if (show.archiveEnabled)                            chips.push(`<span class="chip chip-archive" title="${esc(_archiveTip)}">🗄 ${t('chip.archive') || 'Archive'}${chipDot(d && d.archive)}</span>`);
+  if (show.adMarkers && show.adMarkers.enabled && show.adMarkers.format)
+    chips.push(`<span class="chip chip-markers" title="${esc(t('mk.title'))}">⏱ ${t('chip.markers')}${chipDot(d && d.markers)}</span>`);
   const chipsHtml = chips.length ? `<div class="card-chips">${chips.join('')}</div>` : '';
 
   // Prossima esecuzione placeholder (filled async by renderDashboard)
@@ -430,6 +433,7 @@ async function newShow() {
     bitrate: '192k',
     wavBase:  _settings.baseWav || '',
     wavFiles: [''],
+    adMarkers: { enabled: false, format: 'indiplay', mode: 'joins', intervalMinutes: 15 },
     archiveEnabled:  false,
     archivePath:     '',
     workDirOverride: '',
@@ -471,6 +475,12 @@ function fillShowForm(show) {
 
   document.getElementById('f-wav-base').value = show.wavBase || '';
   buildWavList(show.wavFiles || ['']);
+  const mk = show.adMarkers || {};
+  document.getElementById('f-markers-enabled').checked = !!mk.enabled;
+  document.getElementById('f-markers-format').value    = 'indiplay';   // the only platform offered for now
+  document.getElementById('f-markers-mode').value      = mk.mode === 'interval' ? 'interval' : 'joins';
+  document.getElementById('f-markers-interval').value  = mk.intervalMinutes >= 1 ? mk.intervalMinutes : 15;
+  updateMarkersUi();
 
   const sch = show.schedule || {};
   document.getElementById('f-time').value           = sch.time      || '14:00';
@@ -517,6 +527,16 @@ function renderEnabledBtn(enabled) {
   const btn = document.getElementById('btn-toggle-enabled');
   btn.className = `btn-enable ${enabled ? 'on' : 'off'}`;
   btn.textContent = enabled ? t('show.enabled') : t('show.disabled');
+}
+
+// Ad break markers: the per-file column only shows when the switch is on
+function updateMarkersUi() {
+  const on = document.getElementById('f-markers-enabled').checked;
+  const byInterval = document.getElementById('f-markers-mode').value === 'interval';
+  document.getElementById('tab-sorgenti').classList.toggle('markers-on', on && !byInterval);   // column "Ad break after"
+  document.getElementById('markers-fields').style.display = on ? '' : 'none';
+  document.getElementById('markers-joins-note').style.display = byInterval ? 'none' : '';
+  document.getElementById('markers-interval-field').style.display = byInterval ? '' : 'none';
 }
 
 function toggleBitrateField(format) {
@@ -616,6 +636,12 @@ function collectShowData() {
 
   show.wavBase  = document.getElementById('f-wav-base').value.trim();
   show.wavFiles = collectWavFiles();
+  show.adMarkers = {
+    enabled: document.getElementById('f-markers-enabled').checked,
+    format:  document.getElementById('f-markers-format').value,
+    mode:    document.getElementById('f-markers-mode').value,
+    intervalMinutes: Math.min(240, Math.max(1, parseInt(document.getElementById('f-markers-interval').value, 10) || 15))
+  };
 
   show.schedule = {
     time:      document.getElementById('f-time').value,
@@ -1007,12 +1033,12 @@ function buildWavList(wavFiles) {
   _wavCount = 0;
   const entries = (wavFiles && wavFiles.length) ? wavFiles : [''];
   entries.forEach(entry => {
-    if (typeof entry === 'string') addWavRow(entry, true, '');
-    else addWavRow(entry.path || '', entry.check !== false, entry.note || '');
+    if (typeof entry === 'string') addWavRow(entry, true, '', true);
+    else addWavRow(entry.path || '', entry.check !== false, entry.note || '', entry.midroll !== false);
   });
 }
 
-function addWavRow(value = '', check = true, note = '') {
+function addWavRow(value = '', check = true, note = '', midroll = true) {
   _wavCount++;
   const n = _wavCount;
   const container = document.getElementById('wav-list');
@@ -1025,6 +1051,7 @@ function addWavRow(value = '', check = true, note = '') {
     <input type="text" class="wav-input" placeholder="${t('src.row.ph')}" value="${esc(value)}">
     <button class="btn btn-muted btn-sm wav-browse" title="${t('src.row.browse')}">📁</button>
     <input type="text" class="wav-note" placeholder="${t('src.row.note.ph')}" value="${esc(note)}">
+    <label class="wav-midroll-label" title="${t('src.row.midroll')}"><input type="checkbox" class="wav-midroll"${midroll ? ' checked' : ''}></label>
     <label class="wav-check-label" title="${t('src.row.check')}"><input type="checkbox" class="wav-check" id="${chkId}"${check ? ' checked' : ''}></label>
     <button class="btn btn-muted btn-sm wav-del" title="${t('src.row.remove')}">✕</button>`;
   row.querySelector('.wav-browse').addEventListener('click', async () => {
@@ -1053,6 +1080,7 @@ function collectWavFiles() {
     .map(row => ({
       path:  row.querySelector('.wav-input').value.trim(),
       check: row.querySelector('.wav-check').checked,
+      midroll: row.querySelector('.wav-midroll').checked,
       note:  row.querySelector('.wav-note').value.trim()
     }))
     .filter(e => e.path.length > 0);
@@ -1796,8 +1824,13 @@ document.getElementById('f-slug').addEventListener('input', function() {
   updateFilenamePreview(this.value.trim());
 });
 
+document.getElementById('f-markers-enabled').addEventListener('change', updateMarkersUi);
+document.getElementById('f-markers-format').addEventListener('change', updateMarkersUi);
+document.getElementById('f-markers-mode').addEventListener('change', updateMarkersUi);
+
 document.getElementById('f-output-format').addEventListener('change', function() {
   toggleBitrateField(this.value);
+  updateMarkersUi();
   updateFilenamePreview(document.getElementById('f-slug').value.trim());
 });
 

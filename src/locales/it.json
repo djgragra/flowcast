@@ -102,5 +102,14 @@
   "digest.problems": "{n} show da controllare.",
   "digest.no_shows": "Nessuno show attivo.",
   "digest.no_channel": "Nessun canale attivo: accendi prima email o Telegram.",
-  "digest.sent_ok": "Riepilogo inviato ✓"
+  "digest.sent_ok": "Riepilogo inviato ✓",
+  "proc.markers_single": "Pause pubblicitarie: lo show ha un solo file, niente da segnare",
+  "proc.markers_none_selected": "Pause pubblicitarie: nessuna giunzione selezionata, niente da segnare",
+  "proc.markers_unsupported": "Pause pubblicitarie: questo formato funziona solo con uscita MP3 (l'uscita è {ext}) - marcatori non scritti",
+  "proc.markers_found": "Pause pubblicitarie: {n} trovate a (ms): {list}",
+  "proc.markers_failed": "ATTENZIONE: pause pubblicitarie non scritte ({error})",
+  "proc.markers_tagged": "Pause pubblicitarie scritte nel commento dell'MP3: {text}",
+  "proc.markers_written": "File delle pause pubblicitarie scritto: {file}",
+  "mail.op_markers": "• Marcatori delle pause pubblicitarie: ERRORE",
+  "proc.markers_empty": "Pause pubblicitarie: nessuna pausa ci sta in questo show (è troppo corto), niente da segnare"
 }

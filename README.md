@@ -13,6 +13,7 @@ Tool page: https://onairgarage.com/tools/flowcast/
 - **Multi-part shows**: joins several source files (e.g. show + jingles) into one output file
 - **Change detection**: a show is produced only when its source files have been updated since the last run
 - **FTP upload** with automatic retries and a remote directory browser
+- **IndiPlay ad breaks (midroll)**, off by default: for shows made of several files, you choose which joins carry an ad break (or a break every N minutes, also for a single file) and FlowCast writes the `.mrp` file that IndiPlay.it reads (same name as the audio, one position in milliseconds per line), copies it next to the audio and uploads it before the audio
 - **FTP bookmarks**: edit the credentials once, every show that uses the bookmark is updated
 - **Local output folder and archive**, with date variables in paths (`%ANNO%`, `%MESE%`, `%GIORNO%`, `%ORA%`: year, month, day, hour)
 - **Scheduler**: daily, weekdays, weekend or specific days, with optional start and end dates; expired shows are disabled automatically

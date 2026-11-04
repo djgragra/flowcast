@@ -6,6 +6,7 @@ const { spawn }    = require('child_process');
 const store        = require('./store');
 const { resolveFfmpeg } = require('./ffmpeg-path');
 const { t, dateLocale } = require('./i18n');
+const adMarkers    = require('./ad-markers');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -115,8 +116,8 @@ function resolveArchivePath(settings, archivePath) {
 
 // Normalize wavFiles entry: string → {path, check:true}; object → keep check (default true)
 function normalizeWavEntry(entry) {
-  if (typeof entry === 'string') return { path: entry, check: true };
-  return { path: entry.path || '', check: entry.check !== false };
+  if (typeof entry === 'string') return { path: entry, check: true, midroll: true };
+  return { path: entry.path || '', check: entry.check !== false, midroll: entry.midroll !== false };
 }
 
 // ── main pipeline ─────────────────────────────────────────────────────────────
@@ -241,6 +242,45 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
     }
   }
 
+  // ── 5b. Marcatori di pausa pubblicitaria (midroll): posizioni = somma delle durate ──
+  const markerCfg = adMarkers.normalizeConfig(show.adMarkers);
+  const markers = { result: 'skipped', offsets: [], file: null, name: null };
+  if (markerCfg.enabled) {
+    const flags = wavEntries.map(e => e.midroll);
+    const byInterval = markerCfg.mode === 'interval';
+    if (!byInterval && wavs.length < 2) {
+      logFn(t('proc.markers_single'));
+    } else if (!byInterval && !flags.slice(0, -1).some(Boolean)) {
+      logFn(t('proc.markers_none_selected'));
+    } else if (!adMarkers.formatSupports(markerCfg.format, outExt)) {
+      logFn(t('proc.markers_unsupported', { ext: outExt.toUpperCase() }));
+      markers.result = 'error';
+    } else {
+      try {
+        if (byInterval) {
+          let total = 0;
+          for (const f of intermediates) total += await adMarkers.measureDurationMs(ffmpeg, f);
+          markers.offsets = adMarkers.offsetsEveryMinutes(total, markerCfg.intervalMinutes);
+        } else {
+          const last = flags.slice(0, -1).lastIndexOf(true);
+          const durations = [];
+          for (let i = 0; i <= last; i++) durations.push(await adMarkers.measureDurationMs(ffmpeg, intermediates[i]));
+          durations.push(0);
+          markers.offsets = adMarkers.offsetsFromParts(durations, flags.slice(0, last + 1).concat([false]));
+        }
+        if (markers.offsets.length) {
+          logFn(t('proc.markers_found', { n: markers.offsets.length, list: markers.offsets.join(', ') }));
+          markers.result = 'pending';
+        } else {
+          logFn(t('proc.markers_empty'));
+        }
+      } catch (e) {
+        logFn(t('proc.markers_failed', { error: e.message }));
+        markers.result = 'error';
+      }
+    }
+  }
+
   // ── 6. Concatenazione ─────────────────────────────────────────────────────
   let allFile;
   if (isCopy && intermediates.length === 1) {
@@ -258,6 +298,23 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
     logFn(t('proc.join_ok'));
   }
 
+  // Blubrry: the positions go inside the MP3 itself (ID3 comment), stream copy
+  let taggedFile = null;
+  if (markers.result === 'pending' && markerCfg.format === 'blubrry') {
+    try {
+      taggedFile = path.join(workDir, `${slug}_tagged.${outExt}`);
+      await adMarkers.writeId3Comment(ffmpeg, allFile, taggedFile, adMarkers.formatBlubrry(markers.offsets));
+      allFile = taggedFile;
+      markers.result = 'ok';
+      logFn(t('proc.markers_tagged', { text: adMarkers.formatBlubrry(markers.offsets) }));
+    } catch (e) {
+      if (taggedFile && fs.existsSync(taggedFile)) { try { fs.unlinkSync(taggedFile); } catch(_) {} }
+      taggedFile = null;
+      logFn(t('proc.markers_failed', { error: e.message }));
+      markers.result = 'error';
+    }
+  }
+
   // ── 7. File finale con timestamp ─────────────────────────────────────────
   const ts       = nowTimestamp();
   const outFname = `${slug}_${ts}.${outExt}`;
@@ -271,6 +328,21 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
   copyFile(allFile, outDest);
   logFn(t('proc.ready', { file: outFname }));
 
+  // IndiPlay: a text file with the same name as the audio and extension .mrp, next to it
+  if (markers.result === 'pending' && markerCfg.format === 'indiplay') {
+    try {
+      markers.name = outFname.replace(/\.[^.]+$/, '.mrp');
+      markers.file = path.join(podDir, markers.name);
+      fs.writeFileSync(markers.file, adMarkers.formatMrp(markers.offsets), 'utf-8');
+      markers.result = 'ok';
+      logFn(t('proc.markers_written', { file: markers.name }));
+    } catch (e) {
+      markers.file = null; markers.name = null;
+      logFn(t('proc.markers_failed', { error: e.message }));
+      markers.result = 'error';
+    }
+  }
+
   // ── 8. Archivio (opzionale) ──────────────────────────────────────────────
   let archiveResult = 'skipped';
   if (show.archiveEnabled && resolvedArchive) {
@@ -280,6 +352,7 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
     } else if (archiveOk) {
       try {
         copyFile(outDest, path.join(resolvedArchive, outFname));
+        if (markers.file) copyFile(markers.file, path.join(resolvedArchive, markers.name));
         logFn(t('proc.archive_ok'));
         archiveResult = 'ok';
       } catch(e) {
@@ -309,6 +382,7 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
           logFn(t('proc.output_cleared', { n: existing.length }));
         }
         copyFile(outDest, path.join(expandedOutput, outFname));
+        if (markers.file) copyFile(markers.file, path.join(expandedOutput, markers.name));
         logFn(t('proc.output_ok', { dir: expandedOutput }));
         localResult = 'ok';
       } catch(e) {
@@ -329,6 +403,7 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
   // ── 10. Pulizia file temporanei ───────────────────────────────────────────
   const tmpSet = new Set([...localWavs, ...intermediates]);
   if (allFile !== localWavs[0]) tmpSet.add(allFile);
+  if (taggedFile) tmpSet.add(taggedFile);
   const tmpFiles = [...tmpSet];
   let cleaned = 0;
   for (const f of tmpFiles) {
@@ -339,7 +414,11 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
   logFn('─'.repeat(50));
   logFn(dryRun ? t('proc.dry_done') : t('proc.done'));
 
-  return { action: 'produced', file: outDest, filename: outFname, archiveResult, localResult, dryRun };
+  return {
+    action: 'produced', file: outDest, filename: outFname, archiveResult, localResult, dryRun,
+    markersResult: markers.result === 'pending' ? 'skipped' : markers.result,   // 'skipped' | 'ok' | 'error'
+    markerFile: markers.file, markerName: markers.name
+  };
 }
 
 module.exports = { processShow, resolveArchivePath, expandPath };
