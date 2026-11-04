@@ -110,5 +110,6 @@
   "proc.markers_failed": "WARNING: ad breaks not written ({error})",
   "proc.markers_tagged": "Ad breaks written in the MP3 comment: {text}",
   "proc.markers_written": "Ad break file written: {file}",
-  "mail.op_markers": "• Ad break markers: ERROR"
+  "mail.op_markers": "• Ad break markers: ERROR",
+  "proc.markers_empty": "Ad breaks: no break fits in this show (it is too short), nothing to mark"
 }

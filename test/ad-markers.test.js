@@ -19,6 +19,16 @@ test('ad breaks: positions are the sum of the parts before each selected join; t
   assert.deepEqual(am.offsetsFromParts([0, 0, 500, 9], [true, true, true]), [500], 'empty parts give no duplicate or zero position');
 });
 
+test('ad breaks: "every N minutes" gives N, 2N, 3N... and keeps the last minute of the show free', () => {
+  assert.deepEqual(am.offsetsEveryMinutes(200000, 1), [60000, 120000]);
+  assert.deepEqual(am.offsetsEveryMinutes(3600000, 15), [900000, 1800000, 2700000]);
+  assert.deepEqual(am.offsetsEveryMinutes(2700000 + 60000, 15), [900000, 1800000, 2700000], 'exactly one minute left is allowed');
+  assert.deepEqual(am.offsetsEveryMinutes(2700000 + 59999, 15), [900000, 1800000]);
+  assert.deepEqual(am.offsetsEveryMinutes(50000, 1), [], 'a show too short has no break');
+  assert.deepEqual(am.offsetsEveryMinutes(0, 15), []);
+  assert.deepEqual(am.offsetsEveryMinutes(600000, 0), []);
+});
+
 test('ad breaks: IndiPlay .mrp is one millisecond position per line, LF, as in the sample file from IndiPlay', () => {
   assert.equal(am.formatMrp([163950, 299083, 500481]), '163950\n299083\n500481\n');
   assert.equal(am.formatMrp([]), '');
@@ -33,9 +43,13 @@ test('ad breaks: Blubrry comment uses mid1, mid2... with HH:MM:SS and one decima
 });
 
 test('ad breaks: configuration defaults (off, IndiPlay), Blubrry is written but not offered yet, and which formats fit which audio', () => {
-  assert.deepEqual(am.normalizeConfig(undefined), { enabled: false, format: 'indiplay' });
-  assert.deepEqual(am.normalizeConfig({ enabled: true, format: 'nope' }), { enabled: true, format: 'indiplay' });
-  assert.deepEqual(am.normalizeConfig({ enabled: true, format: 'blubrry' }), { enabled: true, format: 'indiplay' }, 'not public yet: falls back to IndiPlay');
+  assert.deepEqual(am.normalizeConfig(undefined), { enabled: false, format: 'indiplay', mode: 'joins', intervalMinutes: 15 });
+  assert.deepEqual(am.normalizeConfig({ enabled: true, format: 'nope' }), { enabled: true, format: 'indiplay', mode: 'joins', intervalMinutes: 15 });
+  assert.deepEqual(am.normalizeConfig({ enabled: true, format: 'blubrry' }), { enabled: true, format: 'indiplay', mode: 'joins', intervalMinutes: 15 }, 'not public yet: falls back to IndiPlay');
+  assert.deepEqual(am.normalizeConfig({ enabled: true, mode: 'interval', intervalMinutes: 20 }), { enabled: true, format: 'indiplay', mode: 'interval', intervalMinutes: 20 });
+  assert.equal(am.normalizeConfig({ mode: 'interval', intervalMinutes: 0 }).intervalMinutes, 15, 'invalid minutes fall back to 15');
+  assert.equal(am.normalizeConfig({ mode: 'interval', intervalMinutes: 9999 }).intervalMinutes, 240);
+  assert.equal(am.normalizeConfig({ mode: 'weird' }).mode, 'joins');
   assert.equal(am.formatSupports('indiplay', 'wav'), true);
   assert.equal(am.formatSupports('blubrry', 'mp3'), true);
   assert.equal(am.formatSupports('blubrry', 'aac'), false);
@@ -58,6 +72,8 @@ test('ad breaks: the window has the switch, the format, and the per-file box; th
   const html = read('renderer/index.html');
   assert.match(html, /id="f-markers-enabled"/);
   assert.match(html, /id="f-markers-format"/);
+  assert.match(html, /<option value="interval"/);
+  assert.match(html, /id="f-markers-interval"/);
   assert.match(html, /<option value="indiplay"/);
   assert.match(html, /<option value="blubrry"[^>]*\bhidden\b/, 'Blubrry stays in the page but hidden');
   assert.match(html, /id="markers-format-field" style="display:none"/);
@@ -107,6 +123,27 @@ test('production: IndiPlay writes <name>.mrp next to the audio with the position
 test('production: a saved Blubrry choice is ignored while Blubrry is not offered: IndiPlay is used', { skip: !haveFfmpeg && 'ffmpeg not installed' }, async () => {
   const { result } = await produce({ enabled: true, format: 'blubrry' });
   assert.match(result.markerName || '', /\.mrp$/);
+});
+
+test('production: "every N minutes" works with a single file and writes the positions of N, 2N...', { skip: !haveFfmpeg && 'ffmpeg not installed' }, async () => {
+  const dir = tmpDir();
+  freshStore(path.join(dir, 'data'));
+  const processor = require('../src/processor');
+  const src = path.join(dir, 'src'); fs.mkdirSync(src);
+  const out = path.join(dir, 'out');
+  const show = { id: 's2', name: 'One', slug: 'one', outputFormat: 'mp3', bitrate: '64k', outputFolder: out,
+    wavFiles: [{ path: makeTone(src, 'long.wav', 200, 440), check: false }],
+    adMarkers: { enabled: true, format: 'indiplay', mode: 'interval', intervalMinutes: 1 } };
+  const r = await processor.processShow(show, () => {}, () => {}, true, false);
+  assert.equal(r.markersResult, 'ok');
+  const nums = fs.readFileSync(path.join(out, r.markerName), 'utf-8').trim().split('\n').map(Number);
+  assert.equal(nums.length, 2);
+  assert.ok(Math.abs(nums[0] - 60000) < 100 && Math.abs(nums[1] - 120000) < 100, nums.join(','));
+  // too short for any break: nothing is written and it is not an error
+  const short = await processor.processShow({ ...show, id: 's3', slug: 'short', outputFolder: '',
+    wavFiles: [{ path: makeTone(src, 'short.wav', 20, 440), check: false }] }, () => {}, () => {}, true, false);
+  assert.equal(short.markersResult, 'skipped');
+  assert.equal(short.markerFile, null);
 });
 
 test('production: markers off (default) or a single file write nothing', { skip: !haveFfmpeg && 'ffmpeg not installed' }, async () => {

@@ -433,7 +433,7 @@ async function newShow() {
     bitrate: '192k',
     wavBase:  _settings.baseWav || '',
     wavFiles: [''],
-    adMarkers: { enabled: false, format: 'indiplay' },
+    adMarkers: { enabled: false, format: 'indiplay', mode: 'joins', intervalMinutes: 15 },
     archiveEnabled:  false,
     archivePath:     '',
     workDirOverride: '',
@@ -478,6 +478,8 @@ function fillShowForm(show) {
   const mk = show.adMarkers || {};
   document.getElementById('f-markers-enabled').checked = !!mk.enabled;
   document.getElementById('f-markers-format').value    = 'indiplay';   // the only platform offered for now
+  document.getElementById('f-markers-mode').value      = mk.mode === 'interval' ? 'interval' : 'joins';
+  document.getElementById('f-markers-interval').value  = mk.intervalMinutes >= 1 ? mk.intervalMinutes : 15;
   updateMarkersUi();
 
   const sch = show.schedule || {};
@@ -530,8 +532,11 @@ function renderEnabledBtn(enabled) {
 // Ad break markers: the per-file column only shows when the switch is on
 function updateMarkersUi() {
   const on = document.getElementById('f-markers-enabled').checked;
-  document.getElementById('tab-sorgenti').classList.toggle('markers-on', on);
+  const byInterval = document.getElementById('f-markers-mode').value === 'interval';
+  document.getElementById('tab-sorgenti').classList.toggle('markers-on', on && !byInterval);   // column "Ad break after"
   document.getElementById('markers-fields').style.display = on ? '' : 'none';
+  document.getElementById('markers-joins-note').style.display = byInterval ? 'none' : '';
+  document.getElementById('markers-interval-field').style.display = byInterval ? '' : 'none';
 }
 
 function toggleBitrateField(format) {
@@ -633,7 +638,9 @@ function collectShowData() {
   show.wavFiles = collectWavFiles();
   show.adMarkers = {
     enabled: document.getElementById('f-markers-enabled').checked,
-    format:  document.getElementById('f-markers-format').value
+    format:  document.getElementById('f-markers-format').value,
+    mode:    document.getElementById('f-markers-mode').value,
+    intervalMinutes: Math.min(240, Math.max(1, parseInt(document.getElementById('f-markers-interval').value, 10) || 15))
   };
 
   show.schedule = {
@@ -1819,6 +1826,7 @@ document.getElementById('f-slug').addEventListener('input', function() {
 
 document.getElementById('f-markers-enabled').addEventListener('change', updateMarkersUi);
 document.getElementById('f-markers-format').addEventListener('change', updateMarkersUi);
+document.getElementById('f-markers-mode').addEventListener('change', updateMarkersUi);
 
 document.getElementById('f-output-format').addEventListener('change', function() {
   toggleBitrateField(this.value);

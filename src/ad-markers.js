@@ -21,9 +21,21 @@ const FORMATS = {
 };
 const DEFAULT_FORMAT = 'indiplay';
 
+const MODES = ['joins', 'interval'];
+const DEFAULT_INTERVAL_MIN = 15;
+const MAX_INTERVAL_MIN = 240;
+const MIN_TAIL_MS = 60 * 1000;   // an automatic break never lands in the last minute of the show
+
 function normalizeConfig(cfg) {
   const c = cfg && typeof cfg === 'object' ? cfg : {};
-  return { enabled: !!c.enabled, format: FORMATS[c.format] && FORMATS[c.format].public !== false ? c.format : DEFAULT_FORMAT };
+  const minutes = Math.round(Number(c.intervalMinutes));
+  return {
+    enabled: !!c.enabled,
+    format: FORMATS[c.format] && FORMATS[c.format].public !== false ? c.format : DEFAULT_FORMAT,
+    // joins: a break at the joins ticked "Ad break after"; interval: one break every N minutes
+    mode: MODES.includes(c.mode) ? c.mode : 'joins',
+    intervalMinutes: minutes >= 1 ? Math.min(minutes, MAX_INTERVAL_MIN) : DEFAULT_INTERVAL_MIN
+  };
 }
 
 // Can this format be written for an audio file with this extension?
@@ -49,6 +61,18 @@ function offsetsFromParts(durationsMs, flags) {
       if (ms > 0 && out[out.length - 1] !== ms) out.push(ms);
     }
   }
+  return out;
+}
+
+/**
+ * Positions (ms) of a break every `minutes` minutes: N, 2N, 3N... of the whole show, only while
+ * at least a minute of audio is left after the break.
+ */
+function offsetsEveryMinutes(totalMs, minutes) {
+  const step = Math.round(Number(minutes) * 60000);
+  const out = [];
+  if (!(step > 0) || !(totalMs > 0)) return out;
+  for (let pos = step; pos <= totalMs - MIN_TAIL_MS; pos += step) out.push(pos);
   return out;
 }
 
@@ -112,6 +136,7 @@ function writeId3Comment(ffmpegPath, inFile, outFile, comment) {
 
 module.exports = {
   FORMATS, DEFAULT_FORMAT, normalizeConfig, formatSupports,
-  offsetsFromParts, formatMrp, formatBlubrry, blubrryTime,
+  MODES, DEFAULT_INTERVAL_MIN, MAX_INTERVAL_MIN, MIN_TAIL_MS,
+  offsetsFromParts, offsetsEveryMinutes, formatMrp, formatBlubrry, blubrryTime,
   parseFfmpegDuration, measureDurationMs, writeId3Comment
 };

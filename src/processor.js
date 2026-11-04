@@ -247,22 +247,33 @@ async function processShow(show, logFn, progressFn, force = false, dryRun = fals
   const markers = { result: 'skipped', offsets: [], file: null, name: null };
   if (markerCfg.enabled) {
     const flags = wavEntries.map(e => e.midroll);
-    if (wavs.length < 2) {
+    const byInterval = markerCfg.mode === 'interval';
+    if (!byInterval && wavs.length < 2) {
       logFn(t('proc.markers_single'));
-    } else if (!flags.slice(0, -1).some(Boolean)) {
+    } else if (!byInterval && !flags.slice(0, -1).some(Boolean)) {
       logFn(t('proc.markers_none_selected'));
     } else if (!adMarkers.formatSupports(markerCfg.format, outExt)) {
       logFn(t('proc.markers_unsupported', { ext: outExt.toUpperCase() }));
       markers.result = 'error';
     } else {
       try {
-        const last = flags.slice(0, -1).lastIndexOf(true);
-        const durations = [];
-        for (let i = 0; i <= last; i++) durations.push(await adMarkers.measureDurationMs(ffmpeg, intermediates[i]));
-        durations.push(0);
-        markers.offsets = adMarkers.offsetsFromParts(durations, flags.slice(0, last + 1).concat([false]));
-        logFn(t('proc.markers_found', { n: markers.offsets.length, list: markers.offsets.join(', ') }));
-        markers.result = 'pending';
+        if (byInterval) {
+          let total = 0;
+          for (const f of intermediates) total += await adMarkers.measureDurationMs(ffmpeg, f);
+          markers.offsets = adMarkers.offsetsEveryMinutes(total, markerCfg.intervalMinutes);
+        } else {
+          const last = flags.slice(0, -1).lastIndexOf(true);
+          const durations = [];
+          for (let i = 0; i <= last; i++) durations.push(await adMarkers.measureDurationMs(ffmpeg, intermediates[i]));
+          durations.push(0);
+          markers.offsets = adMarkers.offsetsFromParts(durations, flags.slice(0, last + 1).concat([false]));
+        }
+        if (markers.offsets.length) {
+          logFn(t('proc.markers_found', { n: markers.offsets.length, list: markers.offsets.join(', ') }));
+          markers.result = 'pending';
+        } else {
+          logFn(t('proc.markers_empty'));
+        }
       } catch (e) {
         logFn(t('proc.markers_failed', { error: e.message }));
         markers.result = 'error';

@@ -287,7 +287,19 @@
                 </select>
               </div>
               <div class="note" id="markers-format-note" style="margin-bottom:8px" data-i18n="mk.format.indiplay.note"></div>
-              <div class="note" data-i18n-html="mk.note">Each join between two audio files can carry an ad break: tick <b>Ad break after</b> on the file before the join. The position is the sum of the durations of the files before it. A show with a single file has no joins. Platforms that only take ad breaks from their own web panel cannot be served from here.</div>
+              <div class="field">
+                <label data-i18n="mk.mode.label">Where the ad breaks go</label>
+                <select id="f-markers-mode">
+                  <option value="joins" data-i18n="mk.mode.joins">At the joins between files</option>
+                  <option value="interval" data-i18n="mk.mode.interval">Every N minutes (also with a single file)</option>
+                </select>
+              </div>
+              <div class="note" id="markers-joins-note" data-i18n-html="mk.note">Each join between two audio files can carry an ad break: tick <b>Ad break after</b> on the file before the join.</div>
+              <div class="field" id="markers-interval-field">
+                <label data-i18n="mk.interval.label">Minutes between ad breaks</label>
+                <input type="number" id="f-markers-interval" min="1" max="240" step="1" value="15" style="width:90px">
+                <div class="note" data-i18n="mk.interval.note">A break at N, 2N, 3N... minutes from the start of the show, as long as at least one minute of audio is left after it.</div>
+              </div>
             </div>
           </div>
         </div>

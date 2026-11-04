@@ -110,5 +110,6 @@
   "proc.markers_failed": "AVISO: pausas publicitarias no escritas ({error})",
   "proc.markers_tagged": "Pausas publicitarias escritas en el comentario del MP3: {text}",
   "proc.markers_written": "Archivo de pausas publicitarias escrito: {file}",
-  "mail.op_markers": "• Marcadores de pausas publicitarias: ERROR"
+  "mail.op_markers": "• Marcadores de pausas publicitarias: ERROR",
+  "proc.markers_empty": "Pausas publicitarias: ninguna pausa cabe en este programa (es demasiado corto), nada que marcar"
 }
