@@ -83,7 +83,7 @@ jobs:
             name: windows
             command: npm run build
             artifact: dist/*.exe
-          - os: macos-latest
+          - os: macos-15
             name: macos
             command: npm run build:mac
             artifact: dist/*.dmg
